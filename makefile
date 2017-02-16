@@ -52,7 +52,12 @@ help:
 	@echo "make       # clean all examples (does not delete them)"
 	@echo ""
 
+install_bin::
+	@echo "#"
+	@echo "# Installing host_bios examples..."
+	$(MAKE) -C host_bios/simple_buffer_example install
+
 clean::
 	@echo "#"
-	@echo "# Cleaning host_$(HOSTOS) examples..."
+	@echo "# Cleaning host_bios examples..."
 	$(MAKE) -C host_bios/simple_buffer_example clean
