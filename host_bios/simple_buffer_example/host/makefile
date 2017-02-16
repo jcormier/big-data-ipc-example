@@ -118,7 +118,7 @@ LD = $(gnu.targets.arm.A15F)/bin/arm-none-eabi-gcc
 
 CPPFLAGS = -Dfar= -D__DYNAMIC_REENT__
 CFLAGS = -Wall -Wunused -Wunknown-pragmas -ffunction-sections -fdata-sections $(CCPROFILE_$(PROFILE)) @$(CONFIG)/compiler.opt -I.
-CFLAGS += -DSERVER=\"$(SERVER)\"
+CFLAGS += -DSERVER=\"$(SERVER)\" -DPLATFORM_$(PLATFORM)
 
 LDFLAGS = $(LDPROFILE_$(PROFILE)) -mfloat-abi=hard -nostartfiles -Wl,-static -Wl,--gc-sections -Wl,-Map=$(@D)/obj/$(@F).map
 LDLIBS = -L$(BIOS_INSTALL_DIR)/packages/gnu/targets/arm/libs/install-native/arm-none-eabi/lib/fpu

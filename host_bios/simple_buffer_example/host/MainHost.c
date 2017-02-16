@@ -111,7 +111,7 @@ Void App_taskFxn(UArg arg0, UArg arg1)
     boardCfg = BOARD_INIT_UNLOCK_MMR
                | BOARD_INIT_UART_STDIO
                | BOARD_INIT_MODULE_CLOCK
-#if !defined(k2e) && !defined(C6678)
+#if ((!defined(PLATFORM_66AK2E)) && (!defined(PLATFORM_C6678)))
                | BOARD_INIT_PINMUX_CONFIG
 #endif
     ;
