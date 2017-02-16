@@ -39,7 +39,7 @@ include $(EXBASE)/products.mak
 
 srcs = MainDsp.c Server.c
 objs = $(addprefix bin/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66,$(srcs)))
-CONFIG = bin/$(PROFILE)/configuro
+CONFIG = bin/$(PLATFORM)/$(PROFILE)/configuro
 
 PKGPATH := $(BIOS_INSTALL_DIR)/packages
 PKGPATH := $(PKGPATH)+$(IPC_INSTALL_DIR)/packages
@@ -91,8 +91,8 @@ bin/$(PLATFORM)/$(PROFILE)/obj/%.oe66: %.c $(CONFIG)/compiler.opt
 install:
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
-	@$(MKDIR) $(EXEC_DIR)/debug
-	$(CP) bin/$(PLATFORM)/debug/server_dsp.xe66 $(EXEC_DIR)/debug
+#	@$(MKDIR) $(EXEC_DIR)/debug
+#	$(CP) bin/$(PLATFORM)/debug/server_dsp.xe66 $(EXEC_DIR)/debug
 	@$(MKDIR) $(EXEC_DIR)/release
 	$(CP) bin/$(PLATFORM)/release/server_dsp.xe66 $(EXEC_DIR)/release
 

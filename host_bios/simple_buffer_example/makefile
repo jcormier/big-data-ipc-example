@@ -127,7 +127,7 @@ install: $(PROCLIST) $(addsuffix _install,$(PROCLIST))
 $(addsuffix _install,$(PROCLIST)):
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
-	@$(MKDIR) $(EXEC_DIR)/debug
+#	@$(MKDIR) $(EXEC_DIR)/debug
 	@$(MKDIR) $(EXEC_DIR)/release
 	$(MAKE) -C $(subst _install,,$@) EXEC_DIR=$(EXEC_DIR) install
 
