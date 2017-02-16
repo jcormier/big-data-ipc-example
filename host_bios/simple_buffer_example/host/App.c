@@ -304,7 +304,7 @@ Int App_exec(Void)
     }
 
     /* process steady state (keep pipeline full) */
-    for (i = 4; i <= 18; i++) {
+    for (i = 4; i <= 16; i++) {
 
         /* wait for return message */
         status = MessageQ_get(Module.hostQue, (MessageQ_Msg *)&msg,
@@ -368,11 +368,11 @@ Int App_exec(Void)
         MessageQ_setReplyQueue(Module.hostQue, (MessageQ_Msg)msg);
 
         /* fill in message payload */
-        if (i == 18) {
+        if (i == 16) {
             /* Last message will tell the slave to shutdown */
             msg->cmd = App_CMD_SHUTDOWN;
             msg->id = i;
-        } else if (i < 15) {
+        } else if (i < 14) {
             msg->cmd = App_CMD_BIGDATA;
             msg->id = i;
 
