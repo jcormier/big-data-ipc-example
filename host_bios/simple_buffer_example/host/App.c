@@ -77,7 +77,6 @@ typedef struct {
 /* private data */
 static App_Module Module;
 
-
 /*
  *  ======== App_create ========
  */
@@ -163,7 +162,6 @@ leave:
     return(status);
 }
 
-
 /*
  *  ======== App_delete ========
  */
@@ -203,7 +201,6 @@ leave:
     return(status);
 }
 
-
 /*
  *  ======== App_exec ========
  */
@@ -223,20 +220,15 @@ Int App_exec(Void)
     Uint16 regionId;
     HeapMemMP_Handle srHeap;
     UInt32 errorCount=0;
-    
+
     Log_print0(Diags_INFO, "App_exec: -->");
 
-    // obtain information about heap (if any) in SR_1
+    /* obtain information about heap (if any) in SR_1 */
     regionId1 = SharedRegion_getIdByName("SR_1");
     Log_print1(Diags_INFO, "App_taskFxn: SR_1 region Id=%d",regionId1);
     sr1Heap = SharedRegion_getHeap(regionId1);
     if (sr1Heap != NULL)
     {
-        /* SR has predefined heap */
-        HeapMemMP_getStats((HeapMemMP_Handle)sr1Heap, &stats);
-        Log_print3(Diags_INFO, "App_taskFxn: SR_1 heap, totalSize=%d,totalFreeSize=%d,largestFreeSize=%d", (IArg)stats.totalSize, (IArg)stats.totalFreeSize, (IArg)stats.largestFreeSize);
-        HeapMemMP_getExtendedStats((HeapMemMP_Handle)sr1Heap, &extStats);
-        Log_print2(Diags_INFO, "App_taskFxn: SR_1 heap, buf=0x%x,size=%d", (IArg)extStats.buf, (IArg)extStats.size);
         Log_error0("App_taskFxn: Error: Example assumes shared region without preconfigured heap");
         status = -1;
         goto leave;
@@ -248,7 +240,8 @@ Int App_exec(Void)
         pSrEntry = SharedRegion_getEntryPtr(regionId1);
         Log_print1(Diags_INFO, "App_taskFxn: SR_1, len=%d", pSrEntry->len);
 
-        // Create HeapMP at run-time
+        /* Create HeapMP at run-time:
+           This heap is intended to be used for big data ipc */
         HeapMemMP_Params_init(&heapMemMp_params);
         heapMemMp_params.name = "sr1HeapMemMp";
         heapMemMp_params.sharedAddr = pSrEntry->base;
@@ -285,7 +278,7 @@ Int App_exec(Void)
         MessageQ_setReplyQueue(Module.hostQue, (MessageQ_Msg)msg);
 
         if ( i == 1) {
-            /* fill in message payload */
+            /* fill in message payload for Shared region init*/
             msg->cmd = App_CMD_SHARED_REGION_INIT;
             msg->id = i;
             msg->regionId = regionId;
@@ -305,6 +298,10 @@ Int App_exec(Void)
 
     /* process steady state (keep pipeline full) */
     for (i = 4; i <= 16; i++) {
+
+        /* Now this section of code starts receiving messages
+           See the next section for the code for sending further messages */
+        /* Receive messages: Start======================================= */
 
         /* wait for return message */
         status = MessageQ_get(Module.hostQue, (MessageQ_Msg *)&msg,
@@ -355,6 +352,9 @@ Int App_exec(Void)
 
         Log_print1(Diags_INFO, "App_exec: message received, sending message %d",
                 (IArg)i);
+        /* Receive messages: End ======================================= */
+
+        /* Send messages: Start  ======================================= */
 
         /* allocate message */
         msg = (App_Msg *)MessageQ_alloc(Module.heapId, Module.msgSize);
@@ -368,11 +368,10 @@ Int App_exec(Void)
         MessageQ_setReplyQueue(Module.hostQue, (MessageQ_Msg)msg);
 
         /* fill in message payload */
-        if (i == 16) {
-            /* Last message will tell the slave to shutdown */
-            msg->cmd = App_CMD_SHUTDOWN;
-            msg->id = i;
-        } else if (i < 14) {
+        if (i < 14) {
+
+            /* Send Big data messages */
+
             msg->cmd = App_CMD_BIGDATA;
             msg->id = i;
 
@@ -400,14 +399,23 @@ Int App_exec(Void)
             msg->u.bigDataBuffer.sharedPtr = bigDataSharedPtr;
             msg->u.bigDataBuffer.size = BIGDATA_SIZE;
             msg->regionId = regionId;
-        }
-        else {
-            msg->cmd = App_CMD_NOP;
-            msg->id = i;
+        } else {
+            if (i == 16) {
+                /* Last message will tell the slave to shutdown */
+                msg->cmd = App_CMD_SHUTDOWN;
+                msg->id = i;
+            } else {
+                /* Send dummy NOP messages before shutdown */
+                msg->cmd = App_CMD_NOP;
+                msg->id = i;
+            }
         }
 
         /* send message */
         MessageQ_put(Module.slaveQue, (MessageQ_Msg)msg);
+
+        /* Send messages: End  ======================================= */
+
     }
 
     /* drain process pipeline */
