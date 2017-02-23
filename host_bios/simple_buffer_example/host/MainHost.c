@@ -58,6 +58,7 @@
 /* private functions */
 Void App_taskFxn(UArg arg0, UArg arg1);
 
+//#define NO_SBL
 #define HOST_UART_PRINT
 #ifdef HOST_UART_PRINT
 #define host_printf(X) UART_printf(X)
@@ -108,11 +109,14 @@ Void App_taskFxn(UArg arg0, UArg arg1)
     Board_STATUS boardStatus;
     Board_initCfg boardCfg;
 
-    boardCfg = BOARD_INIT_UNLOCK_MMR
-               | BOARD_INIT_UART_STDIO
+    boardCfg = BOARD_INIT_UART_STDIO
+#ifdef NO_SBL 
+               /* This is only if booting without SBL */
+               | BOARD_INIT_UNLOCK_MMR
                | BOARD_INIT_MODULE_CLOCK
 #if ((!defined(PLATFORM_66AK2E)) && (!defined(PLATFORM_C6678)))
                | BOARD_INIT_PINMUX_CONFIG
+#endif
 #endif
     ;
    boardStatus = Board_init(boardCfg);
