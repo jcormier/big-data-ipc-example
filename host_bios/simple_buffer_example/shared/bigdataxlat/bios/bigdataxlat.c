@@ -29,55 +29,44 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/*
- *  ======== AppCommon.h ========
- *
- */
-
-#ifndef AppCommon__include
-#define AppCommon__include
-#if defined (__cplusplus)
-extern "C" {
-#endif
 #include "bigdataxlat.h"
+#include <ti/sysbios/hal/Cache.h>
 
-/*
- *  ======== Application Configuration ========
- */
+Int bigDataXlatetoGlobalAndSync(UInt16  regionId,
+    bigDataLocalDesc_t *localDesc,
+    bigDataSharedDesc_t *SharedDesc) {
 
-/* notify commands 00 - FF */
-#define App_CMD_MASK                   0xFF000000
-#define App_CMD_NOP                    0x00000000
-#define App_CMD_SHARED_REGION_INIT     0x00000001
-#define App_CMD_BIGDATA                0x00000002
-#define App_CMD_SHUTDOWN               0x02000000
+    if (localDesc->localPtr == NULL)
+        return -1;
 
-typedef struct {
-    UInt64              base;
-    UInt64              size;
-} SharedRegionInitCfg;
+    /* Cache write back data buffer */
+    if (SharedRegion_isCacheEnabled(regionId)) {
+        Cache_wb(localDesc->localPtr, localDesc->size, Cache_Type_ALL, TRUE);
+    }
 
-typedef struct {
-    MessageQ_MsgHeader  reserved;
-    UInt32              cmd;
-    Int32               id;
-    UInt16              regionId;
-    union {
-        SharedRegionInitCfg sharedRegionInitCfg;
-        bigDataSharedDesc_t bigDataSharedDesc;
-    } u;
-} App_Msg;
-
-#define App_MsgHeapId           0
-#define App_HostMsgQueName      "HOST:MsgQ:01"
-#define App_SlaveMsgQueName     "%s:MsgQ:01"  /* %s is each slave's Proc Name */
-
-#define BIGDATA_SIZE 16384
-
-#define BIGDATA_ALIGN 1
-
-#if defined (__cplusplus)
+    /* Translate Address to Shared address */
+    SharedDesc->sharedPtr = SharedRegion_getSRPtr(localDesc->localPtr, regionId);
+    SharedDesc->size = localDesc->size;
+    return(0);
 }
-#endif /* defined (__cplusplus) */
-#endif /* AppCommon__include */
+
+Int bigDataXlatetoLocalAndSync(UInt16  regionId,
+    bigDataSharedDesc_t *SharedDesc,
+    bigDataLocalDesc_t *localDesc) {
+
+    if (SharedDesc->sharedPtr == NULL)
+        return -1;
+
+    /* Translate to local address */
+    localDesc->localPtr = SharedRegion_getPtr(SharedDesc->sharedPtr);
+    localDesc->size = SharedDesc->size;
+
+    /* If shared region is configured for cache enabled do cache operation */
+    if (SharedRegion_isCacheEnabled(regionId)) {
+        Cache_inv(localDesc->localPtr,
+        localDesc->size, Cache_Type_ALL, TRUE);
+    }
+
+    return(0);
+}
+

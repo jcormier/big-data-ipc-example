@@ -37,11 +37,16 @@
 EXBASE = ..
 include $(EXBASE)/products.mak
 
-srcs = MainHost.c App.c
+srcs = MainHost.c App.c 
 objs = $(addprefix bin/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oa15fg,$(srcs)))
 CONFIG = bin/$(PLATFORM)/$(PROFILE)/configuro
 
+HOSTOS = bios
+locallibsrcs = shared/bigdataxlat/$(HOSTOS)/bigdataxlat.c
+locallibobjs = $(addprefix bin/shared/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oa15fg,$(locallibsrcs)))
+
 -include $(addprefix bin/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oa15fg.dep,$(srcs)))
+-include $(addprefix bin/shared/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oa15fg.dep,$(locallibsrcs)))
 
 .PRECIOUS: %/compiler.opt %/linker.cmd
 
@@ -55,13 +60,18 @@ debug:
 	$(MAKE) PROFILE=debug app_host.x
 
 app_host.x: bin/$(PLATFORM)/$(PROFILE)/app_host.xa15fg
-bin/$(PLATFORM)/$(PROFILE)/app_host.xa15fg: $(objs) $(libs) $(CONFIG)/linker.cmd
+bin/$(PLATFORM)/$(PROFILE)/app_host.xa15fg: $(objs) $(locallibobjs) $(libs) $(CONFIG)/linker.cmd
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
-	$(LD) -o $@ $(LDFLAGS) $(objs) $(libs) -Wl,-T,$(CONFIG)/linker.cmd \
+	$(LD) -o $@ $(LDFLAGS) $(objs) $(locallibobjs) $(libs) -Wl,-T,$(CONFIG)/linker.cmd \
 		-lgcc -lc -lm -lnosys $(LDLIBS)
 
 bin/$(PLATFORM)/$(PROFILE)/obj/%.oa15fg: %.c $(CONFIG)/compiler.opt
+	@$(ECHO) "#"
+	@$(ECHO) "# Making $@ ..."
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $<
+
+bin/shared/$(PLATFORM)/$(PROFILE)/obj/%.oa15fg: ../%.c $(CONFIG)/compiler.opt
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $<
@@ -118,6 +128,7 @@ LD = $(gnu.targets.arm.A15F)/bin/arm-none-eabi-gcc
 
 CPPFLAGS = -Dfar= -D__DYNAMIC_REENT__
 CFLAGS = -Wall -Wunused -Wunknown-pragmas -ffunction-sections -fdata-sections $(CCPROFILE_$(PROFILE)) @$(CONFIG)/compiler.opt -I.
+CFLAGS += -I../shared/bigdataxlat/bios
 CFLAGS += -DSERVER=\"$(SERVER)\" -DPLATFORM_$(PLATFORM)
 
 LDFLAGS = $(LDPROFILE_$(PROFILE)) -mfloat-abi=hard -nostartfiles -Wl,-static -Wl,--gc-sections -Wl,-Map=$(@D)/obj/$(@F).map
@@ -149,8 +160,9 @@ endif
 #  ======== create output directories ========
 ifneq (clean,$(MAKECMDGOALS))
 ifneq (,$(PROFILE))
-ifeq (,$(wildcard bin/$(PROFILE)/obj))
+ifeq (,$(wildcard bin/$(PLATFORM)/$(PROFILE)/obj))
     $(shell $(MKDIR) -p bin/$(PLATFORM)/$(PROFILE)/obj)
+    $(shell $(MKDIR) -p bin/shared/$(PLATFORM)/$(PROFILE)/obj/shared/bigdataxlat/bios)
 endif
 endif
 endif

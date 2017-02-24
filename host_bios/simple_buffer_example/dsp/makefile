@@ -41,11 +41,16 @@ srcs = MainDsp.c Server.c
 objs = $(addprefix bin/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66,$(srcs)))
 CONFIG = bin/$(PLATFORM)/$(PROFILE)/configuro
 
+HOSTOS = bios
+locallibsrcs = shared/bigdataxlat/$(HOSTOS)/bigdataxlat.c
+locallibobjs = $(addprefix bin/shared/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66,$(locallibsrcs)))
+
 PKGPATH := $(BIOS_INSTALL_DIR)/packages
 PKGPATH := $(PKGPATH)+$(IPC_INSTALL_DIR)/packages
 PKGPATH := $(PKGPATH)+$(XDC_INSTALL_DIR)/packages
 
 -include $(addprefix bin/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66.dep,$(srcs)))
+-include $(addprefix bin/shared/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66.dep,$(locallibsrcs)))
 
 .PRECIOUS: %/compiler.opt %/linker.cmd
 
@@ -61,12 +66,17 @@ release:
 server_dsp.x: bin/$(PLATFORM)/$(PROFILE)/server_dsp.xe66
 	echo executing server_dsp.x
 
-bin/$(PLATFORM)/$(PROFILE)/server_dsp.xe66: $(objs) $(libs) $(CONFIG)/linker.cmd
+bin/$(PLATFORM)/$(PROFILE)/server_dsp.xe66: $(objs) $(locallibobjs) $(libs) $(CONFIG)/linker.cmd
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	$(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 bin/$(PLATFORM)/$(PROFILE)/obj/%.oe66: %.c $(CONFIG)/compiler.opt
+	@$(ECHO) "#"
+	@$(ECHO) "# Making $@ ..."
+	$(CC) $(CPPFLAGS) $(CFLAGS) --output_file=$@ -fc $<
+
+bin/shared/$(PLATFORM)/$(PROFILE)/obj/%.oe66: ../%.c $(CONFIG)/compiler.opt
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	$(CC) $(CPPFLAGS) $(CFLAGS) --output_file=$@ -fc $<
@@ -118,6 +128,7 @@ LD = $(CGTOOLS)/bin/cl6x -z
 
 CPPFLAGS =
 CFLAGS = -qq -pdsw225 -ppd=$@.dep -ppa $(CCPROFILE_$(PROFILE)) -@$(CONFIG)/compiler.opt -I.
+CFLAGS += -I../shared/bigdataxlat/bios
 
 LDFLAGS = -w -q -c -m $(@D)/obj/$(@F).map
 LDLIBS = -l $(CGTOOLS)/lib/rts6600_elf.lib
@@ -147,6 +158,7 @@ ifneq (clean,$(MAKECMDGOALS))
 ifneq (,$(PROFILE))
 ifeq (,$(wildcard bin/$(PLATFORM)/$(PROFILE)/obj))
     $(shell $(MKDIR) -p bin/$(PLATFORM)/$(PROFILE)/obj)
+    $(shell $(MKDIR) -p bin/shared/$(PLATFORM)/$(PROFILE)/obj/shared/bigdataxlat/bios)
 endif
 endif
 endif

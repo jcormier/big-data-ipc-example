@@ -133,9 +133,11 @@ Int Server_exec()
     IHeap_Handle srHeap;
     Memory_Stats stats;
     HeapMemMP_ExtendedStats extStats;
-    Uint32 *bigDataPtr;
+    Uint32 *bigDataLocalPtr;
     Int j;
     UInt32 errorCount=0;
+    Int retVal;
+    bigDataLocalDesc_t bigDataLocalDesc;
 
     Log_print0(Diags_ENTRY | Diags_INFO, "--> Server_exec:");
 
@@ -172,47 +174,46 @@ Int Server_exec()
             Log_print1(Diags_ENTRY | Diags_INFO, "msg->cmd=App_CMD_BIGDATA,msg->ptr=0x%x",
                 (IArg)msg->u.bigDataBuffer.sharedPtr);
 #endif
-            if (msg->u.bigDataBuffer.sharedPtr) {
-                /* Translate Address to local address */
-                bigDataPtr =  SharedRegion_getPtr(msg->u.bigDataBuffer.sharedPtr);
-                
-                /* If enabled Invalidate Cache */
-                if (SharedRegion_isCacheEnabled(msg->regionId)) {
-                    Cache_inv(bigDataPtr,
-                        msg->u.bigDataBuffer.size, Cache_Type_ALL, TRUE);
-                }
+
+            /* Translate to local descriptor */
+            retVal = bigDataXlatetoLocalAndSync(msg->regionId,
+                &msg->u.bigDataSharedDesc, &bigDataLocalDesc);
+            if (retVal) {
+                status = -1;
+                goto leave;
+            }
+            bigDataLocalPtr = (Uint32 *)bigDataLocalDesc.localPtr;
 #ifdef DEBUG
-                /* print message from buffer */
-                Log_print1(Diags_INFO, " Received message %d", msg->id);
-                Log_print0(Diags_INFO, " First 8 bytes: ");
-                for ( j = 0; j < 8 && j < msg->u.bigDataBuffer.size/sizeof(uint32_t); j+=4)
-                    Log_print4(Diags_INFO, "0x%x, 0x%x, 0x%x, 0x%x",
-                        bigDataPtr[j], bigDataPtr[j+1], bigDataPtr[j+2], bigDataPtr[j+3]);
-                Log_print0(Diags_INFO, " Last 8 bytes: ");
-                for ( j = (msg->u.bigDataBuffer.size/sizeof(uint32_t))-8 ;
-                     j < msg->u.bigDataBuffer.size/sizeof(uint32_t); j+=4)
-                    Log_print4(Diags_INFO, "0x%x, 0x%x, 0x%x, 0x%x",
-                        bigDataPtr[j], bigDataPtr[j+1], bigDataPtr[j+2], bigDataPtr[j+3]);
+            /* print message from buffer */
+            Log_print1(Diags_INFO, " Received message %d", msg->id);
+            Log_print0(Diags_INFO, " First 8 bytes: ");
+            for ( j = 0; j < 8 && j < bigDataLocalDesc.size/sizeof(uint32_t); j+=4)
+                Log_print4(Diags_INFO, "0x%x, 0x%x, 0x%x, 0x%x",
+                    bigDataLocalPtr[j], bigDataLocalPtr[j+1], bigDataLocalPtr[j+2], bigDataLocalPtr[j+3]);
+            Log_print0(Diags_INFO, " Last 8 bytes: ");
+            for ( j = (bigDataLocalDesc.size/sizeof(uint32_t))-8 ;
+                 j < bigDataLocalDesc.size/sizeof(uint32_t); j+=4)
+                Log_print4(Diags_INFO, "0x%x, 0x%x, 0x%x, 0x%x",
+                    bigDataLocalPtr[j], bigDataLocalPtr[j+1], bigDataLocalPtr[j+2], bigDataLocalPtr[j+3]);
 #endif
-                /* Check values to see expected results */
-                for( j=0; j < msg->u.bigDataBuffer.size/sizeof(uint32_t); j++) {
-                    if ( bigDataPtr[j] != (msg->id+j) ) {
-                        errorCount++;
-                    }
+            /* Check values to see expected results */
+            for( j=0; j < bigDataLocalDesc.size/sizeof(uint32_t); j++) {
+                if ( bigDataLocalPtr[j] != (msg->id+j) ) {
+                    errorCount++;
                 }
+            }
 
-                /* Fill new data */
-                for ( j=0; j < msg->u.bigDataBuffer.size/sizeof(uint32_t); j++)
-                    bigDataPtr[j] = msg->id + 10 +j;
+            /* Fill new data */
+            for ( j=0; j < bigDataLocalDesc.size/sizeof(uint32_t); j++)
+                bigDataLocalPtr[j] = msg->id + 10 +j;
 
-                /* Writeback if cache enabled */
-                if (SharedRegion_isCacheEnabled(msg->regionId)) {
-                    Cache_wb(bigDataPtr,
-                        msg->u.bigDataBuffer.size, Cache_Type_ALL, TRUE);
-                }
-                msg->u.bigDataBuffer.sharedPtr = SharedRegion_getSRPtr(bigDataPtr, msg->regionId);
-             }
-
+            /* Translate to Shared Descriptor and Sync */
+            retVal = bigDataXlatetoGlobalAndSync(msg->regionId,
+                &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
+            if (retVal) {
+                status = -1;
+                goto leave;
+            }    
         break;
 
         case App_CMD_SHUTDOWN:

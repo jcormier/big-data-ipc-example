@@ -61,7 +61,7 @@
 #define ROUNDUP(size, align) \
     (UInt32)(((UInt32)(size) + ((UInt32)(align) - 1)) & ~((UInt32)(align) - 1))
 
-#define NUM_MSGS 4
+#define MAX_NUM_MSGS 4
 
 /* module structure */
 typedef struct {
@@ -104,7 +104,7 @@ Int App_create(UInt16 remoteProcId)
     Module.msgSize = ROUNDUP(sizeof(App_Msg), align);
 
     /* compute message pool size */
-    Module.poolSize = Module.msgSize * NUM_MSGS;
+    Module.poolSize = Module.msgSize * MAX_NUM_MSGS;
 
     /* acquire message pool memory */
     srHeap = (IHeap_Handle)SharedRegion_getHeap(0);
@@ -113,7 +113,7 @@ Int App_create(UInt16 remoteProcId)
     /* create a heap in shared memory for message pool */
     HeapBuf_Params_init(&heapParams);
     heapParams.blockSize = Module.msgSize;
-    heapParams.numBlocks = NUM_MSGS;
+    heapParams.numBlocks = MAX_NUM_MSGS;
     heapParams.bufSize = Module.poolSize;
     heapParams.align = align;
     heapParams.buf = Module.store;
@@ -208,8 +208,7 @@ Int App_exec(Void)
 {
     Int         status;
     App_Msg *   msg;
-    Uint32 *bigDataPtr;
-    SharedRegion_SRPtr bigDataSharedPtr;
+    Uint32 *bigDataLocalPtr;
     Int16 i,j;
     UInt16  regionId1;
     Memory_Stats stats;
@@ -220,6 +219,8 @@ Int App_exec(Void)
     Uint16 regionId;
     HeapMemMP_Handle srHeap;
     UInt32 errorCount=0;
+    Int retVal;
+    bigDataLocalDesc_t bigDataLocalDesc;
 
     Log_print0(Diags_INFO, "App_exec: -->");
 
@@ -301,7 +302,7 @@ Int App_exec(Void)
 
         /* Now this section of code starts receiving messages
            See the next section for the code for sending further messages */
-        /* Receive messages: Start======================================= */
+        /* Receive messages: Start <======================================= */
 
         /* wait for return message */
         status = MessageQ_get(Module.hostQue, (MessageQ_Msg *)&msg,
@@ -313,38 +314,37 @@ Int App_exec(Void)
 
         /* extract message payload */
 
-        if ((msg->cmd == App_CMD_BIGDATA) && (msg->u.bigDataBuffer.sharedPtr) ) {
+        if (msg->cmd == App_CMD_BIGDATA) {
 
-            /* Translate to local address */
-            bigDataPtr = (Uint32 *)SharedRegion_getPtr(msg->u.bigDataBuffer.sharedPtr);
-
-            /* If shared region is configured for cache enabled do cache operation */
-            if (SharedRegion_isCacheEnabled(msg->regionId)) {
-                Cache_inv(bigDataPtr,
-                    msg->u.bigDataBuffer.size, Cache_Type_ALL, TRUE);
+            retVal = bigDataXlatetoLocalAndSync(msg->regionId,
+                &msg->u.bigDataSharedDesc, &bigDataLocalDesc);
+            if (retVal) {
+                status = -1;
+                goto leave;
             }
+            bigDataLocalPtr = (Uint32 *)bigDataLocalDesc.localPtr;
 #ifdef DEBUG
             /* print data from big data buffer */
             Log_print1(Diags_INFO, " Received back buffer %d", msg->id);
             Log_print0(Diags_INFO, " First 8 bytes: ");
-            for ( j = 0; j < 8 && j < msg->u.bigDataBuffer.size/sizeof(uint32_t); j+=4)
+            for ( j = 0; j < 8 && j < bigDataLocalDesc.size/sizeof(uint32_t); j+=4)
                 Log_print4(Diags_INFO, "0x%x, 0x%x, 0x%x, 0x%x",
-                    bigDataPtr[j], bigDataPtr[j+1], bigDataPtr[j+2], bigDataPtr[j+3]);
+                    bigDataLocalPtr[j], bigDataLocalPtr[j+1], bigDataLocalPtr[j+2], bigDataLocalPtr[j+3]);
             Log_print0(Diags_INFO, " Last 8 bytes: ");
-            for ( j = (msg->u.bigDataBuffer.size/sizeof(uint32_t))-8 ;
-                 j < msg->u.bigDataBuffer.size/sizeof(uint32_t); j+=4)
+            for ( j = (bigDataLocalDesc.size/sizeof(uint32_t))-8 ;
+                 j < bigDataLocalDesc.size/sizeof(uint32_t); j+=4)
                 Log_print4(Diags_INFO, "0x%x, 0x%x, 0x%x, 0x%x",
-                    bigDataPtr[j], bigDataPtr[j+1], bigDataPtr[j+2], bigDataPtr[j+3]);
+                    bigDataLocalPtr[j], bigDataLocalPtr[j+1], bigDataLocalPtr[j+2], bigDataLocalPtr[j+3]);
 #endif
             /* Check values to see expected results */
-            for( j=0; j < msg->u.bigDataBuffer.size/sizeof(uint32_t); j++) {
-                if ( bigDataPtr[j] != (msg->id+10+j) ) {
+            for( j=0; j < bigDataLocalDesc.size/sizeof(uint32_t); j++) {
+                if ( bigDataLocalPtr[j] != (msg->id+10+j) ) {
                     errorCount++;
                 }
             }
 
             /* Free big data buffer */
-            HeapMemMP_free(srHeap, bigDataPtr, msg->u.bigDataBuffer.size);
+            HeapMemMP_free(srHeap, bigDataLocalPtr, bigDataLocalDesc.size);
         }
 
         /* free the message */
@@ -352,9 +352,9 @@ Int App_exec(Void)
 
         Log_print1(Diags_INFO, "App_exec: message received, sending message %d",
                 (IArg)i);
-        /* Receive messages: End ======================================= */
+        /* Receive messages: End =======================================> */
 
-        /* Send messages: Start  ======================================= */
+        /* Send messages: Start  <======================================= */
 
         /* allocate message */
         msg = (App_Msg *)MessageQ_alloc(Module.heapId, Module.msgSize);
@@ -376,28 +376,28 @@ Int App_exec(Void)
             msg->id = i;
 
             /* Allocate buffer from HeapMemMP */
-            bigDataPtr = (Uint32 *)(HeapMemMP_alloc(srHeap, BIGDATA_SIZE, BIGDATA_ALIGN));
+            bigDataLocalPtr = (Uint32 *)(HeapMemMP_alloc(srHeap, BIGDATA_SIZE, BIGDATA_ALIGN));
 
-            if ( ! bigDataPtr ) {
+            if (!bigDataLocalPtr) {
                 status = -1;
                 goto leave;
             }
 
             /* Fill Big data buffer */
             for(j=0; j< BIGDATA_SIZE/sizeof(uint32_t); j++) {
-               bigDataPtr[j] = j+i;
+               bigDataLocalPtr[j] = j+i;
             }
 
-            /* Cache write back data buffer */
-            if (SharedRegion_isCacheEnabled(regionId)) {
-                Cache_wb(bigDataPtr, BIGDATA_SIZE, Cache_Type_ALL, TRUE);
+            /* Populate the Local descriptor */
+            bigDataLocalDesc.localPtr = (Ptr)bigDataLocalPtr;
+            bigDataLocalDesc.size = BIGDATA_SIZE;
+
+            retVal = bigDataXlatetoGlobalAndSync(regionId,
+                &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
+            if (retVal) {
+                status = -1;
+                goto leave;
             }
-
-            /* Translate Address to Shared address */
-            bigDataSharedPtr = SharedRegion_getSRPtr(bigDataPtr, regionId);
-
-            msg->u.bigDataBuffer.sharedPtr = bigDataSharedPtr;
-            msg->u.bigDataBuffer.size = BIGDATA_SIZE;
             msg->regionId = regionId;
         } else {
             if (i == 16) {
@@ -414,7 +414,7 @@ Int App_exec(Void)
         /* send message */
         MessageQ_put(Module.slaveQue, (MessageQ_Msg)msg);
 
-        /* Send messages: End  ======================================= */
+        /* Send messages: End  =======================================> */
 
     }
 

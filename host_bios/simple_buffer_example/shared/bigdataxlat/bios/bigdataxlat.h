@@ -29,55 +29,23 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/*
- *  ======== AppCommon.h ========
- *
- */
-
-#ifndef AppCommon__include
-#define AppCommon__include
-#if defined (__cplusplus)
-extern "C" {
-#endif
-#include "bigdataxlat.h"
-
-/*
- *  ======== Application Configuration ========
- */
-
-/* notify commands 00 - FF */
-#define App_CMD_MASK                   0xFF000000
-#define App_CMD_NOP                    0x00000000
-#define App_CMD_SHARED_REGION_INIT     0x00000001
-#define App_CMD_BIGDATA                0x00000002
-#define App_CMD_SHUTDOWN               0x02000000
+#include <xdc/std.h>
+#include <ti/ipc/SharedRegion.h>
 
 typedef struct {
-    UInt64              base;
-    UInt64              size;
-} SharedRegionInitCfg;
+    Ptr *localPtr;
+    UInt32            size;
+} bigDataLocalDesc_t;
 
 typedef struct {
-    MessageQ_MsgHeader  reserved;
-    UInt32              cmd;
-    Int32               id;
-    UInt16              regionId;
-    union {
-        SharedRegionInitCfg sharedRegionInitCfg;
-        bigDataSharedDesc_t bigDataSharedDesc;
-    } u;
-} App_Msg;
+    SharedRegion_SRPtr  sharedPtr;
+    UInt32              size;
+} bigDataSharedDesc_t;
 
-#define App_MsgHeapId           0
-#define App_HostMsgQueName      "HOST:MsgQ:01"
-#define App_SlaveMsgQueName     "%s:MsgQ:01"  /* %s is each slave's Proc Name */
+Int bigDataXlatetoGlobalAndSync(UInt16  regionId,
+    bigDataLocalDesc_t *localDesc,
+    bigDataSharedDesc_t *SharedDesc);
 
-#define BIGDATA_SIZE 16384
-
-#define BIGDATA_ALIGN 1
-
-#if defined (__cplusplus)
-}
-#endif /* defined (__cplusplus) */
-#endif /* AppCommon__include */
+Int bigDataXlatetoLocalAndSync(UInt16  regionId,
+    bigDataSharedDesc_t *SharedDesc,
+    bigDataLocalDesc_t *localDesc);
