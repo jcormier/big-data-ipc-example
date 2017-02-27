@@ -6,6 +6,8 @@ BigdataIPC example
 
 
 Program Logic:
+--------------
+
 Initially, the host sends first message with shared memory init information
  followed by  2 more dummy messages to slave core ( all three messages sent in
  sequence without waiting for reply).
@@ -36,3 +38,8 @@ Build is structured to be initiated from the Processor SDK top level makefile.
 
 If you want to override the components or do a local build, then the product.mak
 need to be modified to supply the path names of the different components.
+
+The host binaries are expected to be at:
+host/bin/<board_name>/release
+DSP binaries are expected to be at:
+dsp/bin/<platform_name>/release

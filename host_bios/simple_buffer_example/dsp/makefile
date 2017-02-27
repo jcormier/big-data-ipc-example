@@ -158,6 +158,8 @@ ifneq (clean,$(MAKECMDGOALS))
 ifneq (,$(PROFILE))
 ifeq (,$(wildcard bin/$(PLATFORM)/$(PROFILE)/obj))
     $(shell $(MKDIR) -p bin/$(PLATFORM)/$(PROFILE)/obj)
+endif
+ifeq (,$(wildcard bin/shared/$(PLATFORM)/$(PROFILE)/obj/shared/bigdataxlat/bios))
     $(shell $(MKDIR) -p bin/shared/$(PLATFORM)/$(PROFILE)/obj/shared/bigdataxlat/bios)
 endif
 endif

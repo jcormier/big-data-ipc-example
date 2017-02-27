@@ -37,15 +37,15 @@
 EXBASE = ..
 include $(EXBASE)/products.mak
 
-srcs = MainHost.c App.c 
-objs = $(addprefix bin/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oa15fg,$(srcs)))
-CONFIG = bin/$(PLATFORM)/$(PROFILE)/configuro
+srcs = MainHost.c App.c
+objs = $(addprefix bin/$(BOARD_NAME)/$(PROFILE)/obj/,$(patsubst %.c,%.oa15fg,$(srcs)))
+CONFIG = bin/$(BOARD_NAME)/$(PROFILE)/configuro
 
 HOSTOS = bios
 locallibsrcs = shared/bigdataxlat/$(HOSTOS)/bigdataxlat.c
 locallibobjs = $(addprefix bin/shared/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oa15fg,$(locallibsrcs)))
 
--include $(addprefix bin/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oa15fg.dep,$(srcs)))
+-include $(addprefix bin/$(BOARD_NAME)/$(PROFILE)/obj/,$(patsubst %.c,%.oa15fg.dep,$(srcs)))
 -include $(addprefix bin/shared/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oa15fg.dep,$(locallibsrcs)))
 
 .PRECIOUS: %/compiler.opt %/linker.cmd
@@ -59,14 +59,14 @@ release:
 debug:
 	$(MAKE) PROFILE=debug app_host.x
 
-app_host.x: bin/$(PLATFORM)/$(PROFILE)/app_host.xa15fg
-bin/$(PLATFORM)/$(PROFILE)/app_host.xa15fg: $(objs) $(locallibobjs) $(libs) $(CONFIG)/linker.cmd
+app_host.x: bin/$(BOARD_NAME)/$(PROFILE)/app_host.xa15fg
+bin/$(BOARD_NAME)/$(PROFILE)/app_host.xa15fg: $(objs) $(locallibobjs) $(libs) $(CONFIG)/linker.cmd
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	$(LD) -o $@ $(LDFLAGS) $(objs) $(locallibobjs) $(libs) -Wl,-T,$(CONFIG)/linker.cmd \
 		-lgcc -lc -lm -lnosys $(LDLIBS)
 
-bin/$(PLATFORM)/$(PROFILE)/obj/%.oa15fg: %.c $(CONFIG)/compiler.opt
+bin/$(BOARD_NAME)/$(PROFILE)/obj/%.oa15fg: %.c $(CONFIG)/compiler.opt
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $<
@@ -100,7 +100,7 @@ install:
 #	@$(MKDIR) $(EXEC_DIR)/debug
 #	$(CP) bin/$(PLATFORM)/debug/app_host.xa15fg $(EXEC_DIR)/debug
 	@$(MKDIR) $(EXEC_DIR)/release
-	$(CP) bin/$(PLATFORM)/release/app_host.xa15fg $(EXEC_DIR)/release
+	$(CP) bin/$(BOARD_NAME)/release/app_host.xa15fg $(EXEC_DIR)/release
 
 help:
 	@$(ECHO) "make                   # build executable"
@@ -160,8 +160,10 @@ endif
 #  ======== create output directories ========
 ifneq (clean,$(MAKECMDGOALS))
 ifneq (,$(PROFILE))
-ifeq (,$(wildcard bin/$(PLATFORM)/$(PROFILE)/obj))
-    $(shell $(MKDIR) -p bin/$(PLATFORM)/$(PROFILE)/obj)
+ifeq (,$(wildcard bin/$(BOARD_NAME)/$(PROFILE)/obj))
+    $(shell $(MKDIR) -p bin/$(BOARD_NAME)/$(PROFILE)/obj)
+endif
+ifeq (,$(wildcard bin/shared/$(PLATFORM)/$(PROFILE)/obj/shared/bigdataxlat/bios))
     $(shell $(MKDIR) -p bin/shared/$(PLATFORM)/$(PROFILE)/obj/shared/bigdataxlat/bios)
 endif
 endif
