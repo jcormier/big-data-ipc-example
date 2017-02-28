@@ -150,7 +150,13 @@ Void Server_taskFxn(UArg arg0, UArg arg1)
 
 leave:
     Log_print1(Diags_INFO, "Server_taskFxn: <-- status=%d", (IArg)status);
-#ifdef CONSOLE_PRINT 
+
+    if (status < 0)
+        Log_print0(Diags_INFO, "\n DSP: Test Failed \n");
+    else
+        Log_print0(Diags_INFO, "\n DSP: Test Passed \n");
+
+#ifdef CONSOLE_PRINT
     if (status < 0)
         printf("\n DSP: Test Failed \n");
     else

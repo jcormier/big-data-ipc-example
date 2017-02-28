@@ -170,6 +170,10 @@ Void App_taskFxn(UArg arg0, UArg arg1)
 
 leave:
     Log_print1(Diags_INFO, "App_taskFxn: <-- status=%d", (IArg)status);
+    if (status < 0)
+        Log_print0(Diags_INFO, "\n Host: Test Failed \n");
+    else
+        Log_print0(Diags_INFO, "\n Host: Test Passed \n");
 
 #ifdef HOST_UART_PRINT
     if (status < 0)
