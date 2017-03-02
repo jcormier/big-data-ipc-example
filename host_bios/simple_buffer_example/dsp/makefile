@@ -106,6 +106,12 @@ install:
 	@$(MKDIR) $(EXEC_DIR)/release
 	$(CP) bin/$(PLATFORM)/release/server_dsp.xe66 $(EXEC_DIR)/release
 
+install_rov:
+	@$(ECHO) "#"
+	@$(ECHO) "# Making $@ ..."
+	@$(MKDIR) $(EXEC_DIR)/release
+	$(CP) bin/$(PLATFORM)/release/configuro/package/cfg/Dsp_pe66.rov.xs $(EXEC_DIR)/release
+
 help:
 	@$(ECHO) "make                   # build executable"
 	@$(ECHO) "make clean             # clean everything"

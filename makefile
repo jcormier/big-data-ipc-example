@@ -34,7 +34,7 @@
 #  ======== makefile ========
 #
 
-.PHONY: host_bios/simple_buffer_example
+.PHONY:  host_bios host_bios/simple_buffer_example
 
 all: host_bios
 
@@ -56,6 +56,12 @@ install_bin::
 	@echo "#"
 	@echo "# Installing host_bios examples..."
 	$(MAKE) -C host_bios/simple_buffer_example install
+
+install_rov::
+	@echo "#"
+	@echo "# Installing host_bios examples..."
+	$(MAKE) -C host_bios/simple_buffer_example install_rov
+
 
 clean::
 	@echo "#"

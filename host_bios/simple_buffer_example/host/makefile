@@ -102,6 +102,12 @@ install:
 	@$(MKDIR) $(EXEC_DIR)/release
 	$(CP) bin/$(BOARD_NAME)/release/app_host.xa15fg $(EXEC_DIR)/release
 
+install_rov:
+	@$(ECHO) "#"
+	@$(ECHO) "# Making $@ ..."
+	@$(MKDIR) $(EXEC_DIR)/release
+	$(CP) bin/$(BOARD_NAME)/release/configuro/package/cfg/Host_pa15fg.rov.xs $(EXEC_DIR)/release
+
 help:
 	@$(ECHO) "make                   # build executable"
 	@$(ECHO) "make clean             # clean everything"

@@ -116,7 +116,7 @@ help:
 	@$(ECHO) "make install EXEC_DIR=/.../testbench  # install folder"
 
 # setup install goal
-ifeq (install,$(MAKECMDGOALS))
+ifeq ($(filter $(MAKECMDGOALS),install install_rov),$(MAKECMDGOALS))
 ifeq (,$(EXEC_DIR))
 EXEC_DIR=$(CURDIR)/install
 endif
@@ -130,6 +130,14 @@ $(addsuffix _install,$(PROCLIST)):
 #	@$(MKDIR) $(EXEC_DIR)/debug
 	@$(MKDIR) $(EXEC_DIR)/release
 	$(MAKE) -C $(subst _install,,$@) EXEC_DIR=$(EXEC_DIR) install
+
+install_rov: $(PROCLIST) $(addsuffix _install,$(PROCLIST))
+$(addsuffix _install_rov,$(PROCLIST)):
+	@$(ECHO) "#"
+	@$(ECHO) "# Making $@ ..."
+	@$(MKDIR) $(EXEC_DIR)/release
+	$(MAKE) -C $(subst _install_rov,,$@) EXEC_DIR=$(EXEC_DIR) install_rov
+
 
 clean: $(addsuffix _clean,$(PROCLIST))
 	$(RMDIR) install
