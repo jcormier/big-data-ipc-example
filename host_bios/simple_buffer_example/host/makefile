@@ -50,6 +50,8 @@ locallibobjs = $(addprefix bin/shared/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c
 
 .PRECIOUS: %/compiler.opt %/linker.cmd
 
+.PHONY: release debug install install_rov
+
 all: release
 #all: debug
 

@@ -91,7 +91,7 @@ EXBASE = .
 include $(EXBASE)/products.mak
 .PHONY: $(PROCLIST)
 
-.PHONY: install
+.PHONY: install install_rov
 
 all: $(PROCLIST)
 
@@ -131,13 +131,12 @@ $(addsuffix _install,$(PROCLIST)):
 	@$(MKDIR) $(EXEC_DIR)/release
 	$(MAKE) -C $(subst _install,,$@) EXEC_DIR=$(EXEC_DIR) install
 
-install_rov: $(PROCLIST) $(addsuffix _install,$(PROCLIST))
+install_rov: $(PROCLIST) $(addsuffix _install_rov,$(PROCLIST))
 $(addsuffix _install_rov,$(PROCLIST)):
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	@$(MKDIR) $(EXEC_DIR)/release
 	$(MAKE) -C $(subst _install_rov,,$@) EXEC_DIR=$(EXEC_DIR) install_rov
-
 
 clean: $(addsuffix _clean,$(PROCLIST))
 	$(RMDIR) install

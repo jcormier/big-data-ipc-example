@@ -53,6 +53,7 @@ PKGPATH := $(PKGPATH)+$(XDC_INSTALL_DIR)/packages
 -include $(addprefix bin/shared/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66.dep,$(locallibsrcs)))
 
 .PRECIOUS: %/compiler.opt %/linker.cmd
+.PHONY: release debug install install_rov
 
 all: release
 
