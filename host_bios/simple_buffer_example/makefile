@@ -54,8 +54,8 @@ PROCLIST = host dsp
 PROC_HOST_NAME = "HOST"
 PROC_DSP_NAME = "CORE0"
 PROC_NAME_LIST = "\\\"$(PROC_HOST_NAME)\\\", \\\"$(PROC_DSP_NAME)\\\""
-DSP_PLATFORM = ti.platforms.evmTCI6638K2K:dsp
-HOST_PLATFORM = ti.platforms.evmTCI6638K2K:host
+DSP_PLATFORM = ti.platforms.evmTCI6636K2H:dsp
+HOST_PLATFORM = ti.platforms.evmTCI6636K2H:host
 SERVER = "$(PROC_DSP_NAME)"
 BOARD_NAME = "evmK2K"
 else ifeq ($(PLATFORM),TCI6636)

@@ -59,7 +59,7 @@ var SR_1 = {
         comment: "SR#1 Memory (> 2 GB )"
     };
 
-Build.platformTable["ti.platforms.evmTCI6638K2K:dsp"] = {
+Build.platformTable["ti.platforms.evmTCI6636K2H:dsp"] = {
     externalMemoryMap: [
         [ "DSP_PROG", {
             name: "DSP_PROG", space: "code/data", access: "RWX",
@@ -74,7 +74,7 @@ Build.platformTable["ti.platforms.evmTCI6638K2K:dsp"] = {
     stackMemory: "DSP_PROG"
 };
 
-Build.platformTable["ti.platforms.evmTCI6638K2K:host"] = {
+Build.platformTable["ti.platforms.evmTCI6636K2H:host"] = {
     externalMemoryMap: [
         [ "HOST_PROG", {
             name: "HOST_PROG", space: "code/data", access: "RWX",
