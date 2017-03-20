@@ -34,10 +34,21 @@ Then the host receives back the remaining returned messages before shutting
 
 Build_procedure
 ---------------
-Build is structured to be initiated from the Processor SDK top level makefile.
-
 If you want to override the components or do a local build, then the product.mak
 need to be modified to supply the path names of the different components.
+or
+The following commandline can be used to build the example
+with the appropriate paths set:
+
+PLATFORM=<platform_name> \
+XDC_INSTALL_DIR="<xdc_install_dir>" \
+BIOS_INSTALL_DIR="<bios_install_dir>" \
+IPC_INSTALL_DIR="<ipc_install_dir>" \
+PDK_INSTALL_DIR="<pdk_install_dir>" \
+gnu.targets.arm.A15F="<A15_tools_dir>" \
+ti.targets.elf.C66="<c66_tools_dir>"\
+BOARD_NAME="<board_name>" \
+make
 
 The host binaries are expected to be at:
 host/bin/<board_name>/release
