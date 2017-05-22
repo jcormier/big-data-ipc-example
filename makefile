@@ -34,20 +34,28 @@
 #  ======== makefile ========
 #
 
-.PHONY:  host_bios host_bios/simple_buffer_example
+.PHONY:  host_bios host_bios/simple_buffer_example host_linux/simple_buffer_example
 
 all: host_bios
 
 host_bios: host_bios/simple_buffer_example
 
+host_linux: host_linux/simple_buffer_example
+
 host_bios/simple_buffer_example:
-	echo "#"
-	echo "# Making $@..."
+	@echo "#"
+	@echo "# Making $@..."
+	$(MAKE) -C $@ all
+
+host_linux/simple_buffer_example:
+	@echo "#"
+	@echo "# Making $@..."
 	$(MAKE) -C $@ all
 
 help:
 	@echo "make all        # build all examples"
-	@echo "make host_bios  # build all examples"
+	@echo "make host_bios  # build all host bios examples"
+	@echo "make host_linux  # build all host linux examples"
 	@echo "make clean      # clean all examples (does not delete them)"
 	@echo "make       # clean all examples (does not delete them)"
 	@echo ""
@@ -57,13 +65,25 @@ install_bin::
 	@echo "# Installing host_bios examples..."
 	$(MAKE) -C host_bios/simple_buffer_example install
 
+install_linux_bin::
+	@echo "#"
+	@echo "# Installing host_linux examples..."
+	$(MAKE) -C host_linux/simple_buffer_example install
+
 install_rov::
 	@echo "#"
 	@echo "# Installing host_bios examples..."
 	$(MAKE) -C host_bios/simple_buffer_example install_rov
 
 
-clean::
+clean:: clean_bios clean_linux
+
+clean_bios::
 	@echo "#"
 	@echo "# Cleaning host_bios examples..."
 	$(MAKE) -C host_bios/simple_buffer_example clean
+
+clean_linux::
+	@echo "#"
+	@echo "# Cleaning host_linux examples..."
+	$(MAKE) -C host_linux/simple_buffer_example clean
