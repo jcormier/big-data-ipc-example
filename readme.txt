@@ -23,9 +23,9 @@ XDC_INSTALL_DIR="<xdc_install_dir>" \
 BIOS_INSTALL_DIR="<bios_install_dir>" \
 IPC_INSTALL_DIR="<ipc_install_dir>" \
 PDK_INSTALL_DIR="<pdk_install_dir>" \
-gnu.targets.arm.A15F="<A15_tools_dir>" \
-ti.targets.elf.C66="<c66_tools_dir>"\
-BOARD_NAME="<board_name>" \
+env gnu.targets.arm.A15F="<A15_tools_dir>" \
+env ti.targets.elf.C66="<c66_tools_dir>"\
+BOARD_NAME=<board_name> \
 make host_bios
 
 or
