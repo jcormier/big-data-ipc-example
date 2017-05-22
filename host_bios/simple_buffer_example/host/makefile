@@ -42,7 +42,7 @@ objs = $(addprefix bin/$(BOARD_NAME)/$(PROFILE)/obj/,$(patsubst %.c,%.oa15fg,$(s
 CONFIG = bin/$(BOARD_NAME)/$(PROFILE)/configuro
 
 HOSTOS = bios
-locallibsrcs = shared/bigdataxlat/$(HOSTOS)/bigdataxlat.c
+locallibsrcs = shared/bigdataxlat/bios/bigdataxlat.c
 locallibobjs = $(addprefix bin/shared/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oa15fg,$(locallibsrcs)))
 
 -include $(addprefix bin/$(BOARD_NAME)/$(PROFILE)/obj/,$(patsubst %.c,%.oa15fg.dep,$(srcs)))

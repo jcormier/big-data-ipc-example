@@ -41,8 +41,7 @@ srcs = MainDsp.c Server.c
 objs = $(addprefix bin/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66,$(srcs)))
 CONFIG = bin/$(PLATFORM)/$(PROFILE)/configuro
 
-HOSTOS = bios
-locallibsrcs = shared/bigdataxlat/$(HOSTOS)/bigdataxlat.c
+locallibsrcs = shared/bigdataxlat/bios/bigdataxlat.c
 locallibobjs = $(addprefix bin/shared/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66,$(locallibsrcs)))
 
 PKGPATH := $(BIOS_INSTALL_DIR)/packages
@@ -53,7 +52,7 @@ PKGPATH := $(PKGPATH)+$(XDC_INSTALL_DIR)/packages
 -include $(addprefix bin/shared/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66.dep,$(locallibsrcs)))
 
 .PRECIOUS: %/compiler.opt %/linker.cmd
-.PHONY: release debug install install_rov
+.PHONY: release debug install install_rov server_dsp.x
 
 all: release
 
@@ -65,7 +64,6 @@ release:
 	$(MAKE) PROFILE=release server_dsp.x
 
 server_dsp.x: bin/$(PLATFORM)/$(PROFILE)/server_dsp.xe66
-	echo executing server_dsp.x
 
 bin/$(PLATFORM)/$(PROFILE)/server_dsp.xe66: $(objs) $(locallibobjs) $(libs) $(CONFIG)/linker.cmd
 	@$(ECHO) "#"

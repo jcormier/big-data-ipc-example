@@ -94,6 +94,7 @@ include $(EXBASE)/products.mak
 .PHONY: install install_rov
 
 all: $(PROCLIST)
+	@echo $(PROCLIST)
 
 $(PROCLIST):
 	@$(ECHO) "#"
