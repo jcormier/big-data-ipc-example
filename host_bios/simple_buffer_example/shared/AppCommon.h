@@ -73,9 +73,9 @@ typedef struct {
 #define App_HostMsgQueName      "HOST:MsgQ:01"
 #define App_SlaveMsgQueName     "%s:MsgQ:01"  /* %s is each slave's Proc Name */
 
-#define BIGDATA_SIZE 16384
+#define BIGDATA_BUF_SIZE 16384
 
-#define BIGDATA_ALIGN 1
+#define BIGDATA_BUF_ALIGN 1
 
 #if defined (__cplusplus)
 }

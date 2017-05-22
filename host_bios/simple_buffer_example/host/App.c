@@ -208,15 +208,15 @@ Int App_exec(Void)
 {
     Int         status;
     App_Msg *   msg;
-    Uint32 *bigDataLocalPtr;
-    Int16 i,j;
+    UInt32 *bigDataLocalPtr;
+    Int         i,j;
     UInt16  regionId1;
     Memory_Stats stats;
     HeapMemMP_ExtendedStats extStats;
     SharedRegion_Entry *pSrEntry;
     HeapMemMP_Params heapMemMp_params;
     HeapMemMP_Handle sr1Heap;
-    Uint16 regionId;
+    UInt16 regionId;
     HeapMemMP_Handle srHeap;
     UInt32 errorCount=0;
     Int retVal;
@@ -322,7 +322,7 @@ Int App_exec(Void)
                 status = -1;
                 goto leave;
             }
-            bigDataLocalPtr = (Uint32 *)bigDataLocalDesc.localPtr;
+            bigDataLocalPtr = (UInt32 *)bigDataLocalDesc.localPtr;
 #ifdef DEBUG
             /* print data from big data buffer */
             Log_print1(Diags_INFO, " Received back buffer %d", msg->id);
@@ -376,7 +376,7 @@ Int App_exec(Void)
             msg->id = i;
 
             /* Allocate buffer from HeapMemMP */
-            bigDataLocalPtr = (Uint32 *)(HeapMemMP_alloc(srHeap, BIGDATA_SIZE, BIGDATA_ALIGN));
+            bigDataLocalPtr = (UInt32 *)(HeapMemMP_alloc(srHeap, BIGDATA_BUF_SIZE, BIGDATA_ALIGN));
 
             if (!bigDataLocalPtr) {
                 status = -1;
@@ -384,13 +384,13 @@ Int App_exec(Void)
             }
 
             /* Fill Big data buffer */
-            for(j=0; j< BIGDATA_SIZE/sizeof(uint32_t); j++) {
+            for(j=0; j< BIGDATA_BUF_SIZE/sizeof(uint32_t); j++) {
                bigDataLocalPtr[j] = j+i;
             }
 
             /* Populate the Local descriptor */
             bigDataLocalDesc.localPtr = (Ptr)bigDataLocalPtr;
-            bigDataLocalDesc.size = BIGDATA_SIZE;
+            bigDataLocalDesc.size = BIGDATA_BUF_SIZE;
 
             retVal = bigDataXlatetoGlobalAndSync(regionId,
                 &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
