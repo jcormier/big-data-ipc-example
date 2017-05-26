@@ -80,8 +80,7 @@ bin/shared/$(PLATFORM)/$(PROFILE)/obj/%.oe66: ../%.c $(CONFIG)/compiler.opt
 	@$(ECHO) "# Making $@ ..."
 	$(CC) $(CPPFLAGS) $(CFLAGS) --output_file=$@ -fc $<
 
-%/compiler.opt: %/linker.cmd ;
-%/linker.cmd: Dsp.cfg ../shared/$(PLATFORM)/config.bld
+%/compiler.opt %/linker.cmd: Dsp.cfg ../shared/$(PLATFORM)/config.bld
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	$(XDC_INSTALL_DIR)/xs --xdcpath="$(subst +,;,$(PKGPATH))" \

@@ -325,15 +325,15 @@ Int App_exec(Void)
             bigDataLocalPtr = (UInt32 *)bigDataLocalDesc.localPtr;
 #ifdef DEBUG
             /* print data from big data buffer */
-            Log_print1(Diags_INFO, " Received back buffer %d", msg->id);
-            Log_print0(Diags_INFO, " First 8 bytes: ");
+            Log_print1(Diags_INFO, " Received back buffer %d\n", msg->id);
+            Log_print0(Diags_INFO, " First 8 bytes: \n");
             for ( j = 0; j < 8 && j < bigDataLocalDesc.size/sizeof(uint32_t); j+=4)
-                Log_print4(Diags_INFO, "0x%x, 0x%x, 0x%x, 0x%x",
+                Log_print4(Diags_INFO, "0x%x, 0x%x, 0x%x, 0x%x\n",
                     bigDataLocalPtr[j], bigDataLocalPtr[j+1], bigDataLocalPtr[j+2], bigDataLocalPtr[j+3]);
-            Log_print0(Diags_INFO, " Last 8 bytes: ");
+            Log_print0(Diags_INFO, " Last 8 bytes: \n");
             for ( j = (bigDataLocalDesc.size/sizeof(uint32_t))-8 ;
                  j < bigDataLocalDesc.size/sizeof(uint32_t); j+=4)
-                Log_print4(Diags_INFO, "0x%x, 0x%x, 0x%x, 0x%x",
+                Log_print4(Diags_INFO, "0x%x, 0x%x, 0x%x, 0x%x\n",
                     bigDataLocalPtr[j], bigDataLocalPtr[j+1], bigDataLocalPtr[j+2], bigDataLocalPtr[j+3]);
 #endif
             /* Check values to see expected results */
@@ -347,10 +347,13 @@ Int App_exec(Void)
             HeapMemMP_free(srHeap, bigDataLocalPtr, bigDataLocalDesc.size);
         }
 
+        Log_print1(Diags_INFO, "App_exec: message received %d",
+                (IArg)msg->id);
+
         /* free the message */
         MessageQ_free((MessageQ_Msg)msg);
 
-        Log_print1(Diags_INFO, "App_exec: message received, sending message %d",
+        Log_print1(Diags_INFO, "App_exec: Preparing message %d",
                 (IArg)i);
         /* Receive messages: End =======================================> */
 
@@ -376,7 +379,7 @@ Int App_exec(Void)
             msg->id = i;
 
             /* Allocate buffer from HeapMemMP */
-            bigDataLocalPtr = (UInt32 *)(HeapMemMP_alloc(srHeap, BIGDATA_BUF_SIZE, BIGDATA_ALIGN));
+            bigDataLocalPtr = (UInt32 *)(HeapMemMP_alloc(srHeap, BIGDATA_BUF_SIZE, BIGDATA_BUF_ALIGN));
 
             if (!bigDataLocalPtr) {
                 status = -1;
@@ -411,6 +414,8 @@ Int App_exec(Void)
             }
         }
 
+        Log_print1(Diags_INFO, "App_exec: Sending message %d\n", i);
+
         /* send message */
         MessageQ_put(Module.slaveQue, (MessageQ_Msg)msg);
 
@@ -420,7 +425,6 @@ Int App_exec(Void)
 
     /* drain process pipeline */
     for (i = 1; i <= 3; i++) {
-        Log_print0(Diags_INFO, "App_exec: message received");
 
         /* wait for return message */
         status = MessageQ_get(Module.hostQue, (MessageQ_Msg *)&msg,
@@ -429,6 +433,7 @@ Int App_exec(Void)
         if (status < 0) {
             goto leave;
         }
+        Log_print1(Diags_INFO, "App_exec: message received: %d\n", msg->id);
 
         /* extract message payload */
 
@@ -437,6 +442,9 @@ Int App_exec(Void)
     }
 
 leave:
+    if (srHeap) {
+        HeapMemMP_delete(&srHeap);
+    }
     /* Print error count if non-zero */
     if (errorCount) {
         Log_print1(Diags_INFO, "App_exec: Error Count %d", errorCount);

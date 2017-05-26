@@ -150,6 +150,7 @@ Int Server_exec()
         if (status < 0) {
             goto leave;
         }
+        Log_print1(Diags_ENTRY | Diags_INFO, "Message received...%d", msg->id);
         switch (msg->cmd) {
         case App_CMD_SHARED_REGION_INIT:
             regionId = msg->regionId;
@@ -172,7 +173,7 @@ Int Server_exec()
         case App_CMD_BIGDATA:
 #ifdef DEBUG
             Log_print1(Diags_ENTRY | Diags_INFO, "msg->cmd=App_CMD_BIGDATA,msg->ptr=0x%x",
-                (IArg)msg->u.bigDataBuffer.sharedPtr);
+                (IArg)msg->u.bigDataSharedDesc.sharedPtr);
 #endif
 
             /* Translate to local descriptor */
@@ -186,6 +187,7 @@ Int Server_exec()
 #ifdef DEBUG
             /* print message from buffer */
             Log_print1(Diags_INFO, " Received message %d", msg->id);
+            Log_print1(Diags_INFO, " Local Pointer 0x%x", (UInt32)bigDataLocalPtr);
             Log_print0(Diags_INFO, " First 8 bytes: ");
             for ( j = 0; j < 8 && j < bigDataLocalDesc.size/sizeof(uint32_t); j+=4)
                 Log_print4(Diags_INFO, "0x%x, 0x%x, 0x%x, 0x%x",
@@ -225,10 +227,10 @@ Int Server_exec()
         }
 
         /* process the message */
-        Log_print1(Diags_INFO, "Server_exec: processed cmd=0x%x", msg->cmd);
+        Log_print2(Diags_INFO, "Server_exec: processed id %d, cmd=0x%x", msg->id, msg->cmd);
 
         /* send message back */
-        queId = MessageQ_getReplyQueue(msg); /* type-cast not needed */
+        queId = MessageQ_getReplyQueue(msg);
         MessageQ_put(queId, (MessageQ_Msg)msg);
     } /* while (running) */
 

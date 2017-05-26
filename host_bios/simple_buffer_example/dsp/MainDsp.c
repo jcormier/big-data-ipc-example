@@ -138,6 +138,11 @@ Void Server_taskFxn(UArg arg0, UArg arg1)
         goto leave;
     }
 
+        Log_print0(Diags_INFO, "DSP: Test Passed");
+
+#ifdef CONSOLE_PRINT
+        printf("\n DSP: Test Passed\n");
+#endif
     /* finalize the server */
     status = Server_delete();
 
@@ -149,18 +154,14 @@ Void Server_taskFxn(UArg arg0, UArg arg1)
     Server_exit();
 
 leave:
-    Log_print1(Diags_INFO, "Server_taskFxn: <-- status=%d", (IArg)status);
 
     if (status < 0)
-        Log_print0(Diags_INFO, "\n DSP: Test Failed \n");
-    else
-        Log_print0(Diags_INFO, "\n DSP: Test Passed \n");
-
+        Log_print1(Diags_INFO, " DSP: Test Failed: %d", status);
 #ifdef CONSOLE_PRINT
     if (status < 0)
-        printf("\n DSP: Test Failed \n");
-    else
-        printf("\n DSP: Test Passed \n");
+        printf("\n DSP: Test Failed: %d\n", status);
 #endif
+    Log_print1(Diags_INFO, "Server_taskFxn: <-- status=%d", (IArg)status);
+
     return;
 }
