@@ -85,6 +85,15 @@ DSP_PLATFORM = ti.platforms.evmC66AK2E:dsp
 HOST_PLATFORM = ti.platforms.evmC66AK2E:host
 BOARD_NAME = "evmK2E"
 SERVER = "$(PROC_DSP_NAME)"
+else ifeq ($(PLATFORM),TCI6630)
+PROCLIST = host dsp
+PROC_HOST_NAME = "HOST"
+PROC_DSP_NAME = "CORE0"
+PROC_NAME_LIST = "\\\"$(PROC_HOST_NAME)\\\", \\\"$(PROC_DSP_NAME)\\\""
+DSP_PLATFORM = ti.platforms.evmTCI6630K2L:dsp
+HOST_PLATFORM = ti.platforms.evmTCI6630K2L:host
+BOARD_NAME = "evmK2L"
+SERVER = "$(PROC_DSP_NAME)"
 endif
 
 EXBASE = .
