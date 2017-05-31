@@ -54,7 +54,9 @@ PROCLIST = host dsp
 PROC_HOST_NAME = "HOST"
 PROC_DSP_NAME = "CORE0"
 PROC_NAME_LIST = "\\\"$(PROC_HOST_NAME)\\\", \\\"$(PROC_DSP_NAME)\\\""
-DSP_PLATFORM = ti.platforms.evmTCI6636K2H:dsp
+DSP_PLATFORM = ti.platforms.evmTCI6638K2K:dsp
+# Currently no IPC support for evmTCI6638K2K:host 
+#   Hence using evmTCI6636K2H which is equivalent
 HOST_PLATFORM = ti.platforms.evmTCI6636K2H:host
 SERVER = "$(PROC_DSP_NAME)"
 BOARD_NAME = "evmK2K"
