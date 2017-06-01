@@ -53,7 +53,7 @@
 
 #include "_SharedRegion.h"
 
-#define ENABLE_LOCAL_LOCK
+//#define ENABLE_LOCAL_LOCK
 
 #define ROUNDUP(size, align) \
     (UInt32)(((UInt32)(size) + ((UInt32)(align) - 1)) & ~((UInt32)(align) - 1))

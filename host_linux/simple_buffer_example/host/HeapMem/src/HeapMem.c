@@ -90,7 +90,7 @@
 
 #include "_SharedRegion.h"
 
-#define ENABLE_LOCAL_LOCK
+//#define ENABLE_LOCAL_LOCK
 
 /* Module level headers */
 #include <_HeapMem.h>
