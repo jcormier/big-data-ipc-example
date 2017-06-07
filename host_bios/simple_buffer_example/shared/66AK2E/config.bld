@@ -36,7 +36,7 @@
  */
 var Build = xdc.useModule('xdc.bld.BuildEnvironment');
 
-/*  Memory Map for ti.platforms.evm6638
+/*  Memory Map for ti.platforms.evmC66AK2E
  *
  *    Address          Size             Comment
  *  -------------------------------------------------------------
