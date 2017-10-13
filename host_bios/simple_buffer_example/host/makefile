@@ -140,7 +140,7 @@ CFLAGS += -I../shared/bigdataxlat/bios
 CFLAGS += -DSERVER=\"$(SERVER)\" -DPLATFORM_$(PLATFORM)
 
 LDFLAGS = $(LDPROFILE_$(PROFILE)) -mfloat-abi=hard -nostartfiles -Wl,-static -Wl,--gc-sections -Wl,-Map=$(@D)/obj/$(@F).map
-LDLIBS = -L$(BIOS_INSTALL_DIR)/packages/gnu/targets/arm/libs/install-native/arm-none-eabi/lib/fpu
+LDLIBS = -L$(BIOS_INSTALL_DIR)/packages/gnu/targets/arm/libs/install-native/arm-none-eabi/lib/hard --specs=nano.specs
 
 CCPROFILE_debug = -g -ggdb -D_DEBUG_=1
 CCPROFILE_release = -O2
