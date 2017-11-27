@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2012-2015 Texas Instruments Incorporated - http://www.ti.com
+#  Copyright (c) 2012-2017 Texas Instruments Incorporated - http://www.ti.com
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,16 @@
 ifeq ($(PLATFORM),DRA7XX)
 PROCLIST = host dsp
 #PROCLIST = host ipu 
+PROC_HOST_NAME = "HOST"
+PROC_DSP_NAME = "DSP1"
+#PROC_IPU_NAME = "IPU1"
+PROC_NAME_LIST = "\\\"$(PROC_HOST_NAME)\\\", \\\"IPU1\\\", \\\"IPU2\\\", \\\"DSP2\\\", \\\"DSP1\\\""
+DSP_PLATFORM = ti.platforms.evmDRA7XX:dsp
+IPU_PLATFORM = ti.platforms.evmDRA7XX:ipu
+SERVER = "$(PROC_DSP_NAME)"
+else ifeq ($(PLATFORM),AM574x)
+PROCLIST = host dsp
+#PROCLIST = host ipu
 PROC_HOST_NAME = "HOST"
 PROC_DSP_NAME = "DSP1"
 #PROC_IPU_NAME = "IPU1"
