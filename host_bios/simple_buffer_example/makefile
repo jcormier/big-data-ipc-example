@@ -49,6 +49,19 @@ HOST_PLATFORM = ti.platforms.evmDRA7XX:host
 IPU_PLATFORM = ti.platforms.evmDRA7XX:ipu
 SERVER = "$(PROC_DSP_NAME)"
 BOARD_NAME = "idkAM572x"
+else ifeq ($(PLATFORM),AM574x)
+PROCLIST = host dsp
+#PROCLIST = host ipu
+PROC_HOST_NAME = "HOST"
+PROC_DSP_NAME = "DSP1"
+#PROC_IPU_NAME = "IPU1"
+PROC_NAME_LIST = "\\\"$(PROC_HOST_NAME)\\\", \\\"$(PROC_DSP_NAME)\\\""
+#PROC_NAME_LIST = "\\\"$(PROC_HOST_NAME)\\\", \\\"$(PROC_IPU_NAME)\\\""
+DSP_PLATFORM = ti.platforms.evmDRA7XX:dsp
+HOST_PLATFORM = ti.platforms.evmDRA7XX:host
+IPU_PLATFORM = ti.platforms.evmDRA7XX:ipu
+SERVER = "$(PROC_DSP_NAME)"
+BOARD_NAME = "idkAM574x"
 else ifeq ($(PLATFORM),TCI6638)
 PROCLIST = host dsp
 PROC_HOST_NAME = "HOST"
