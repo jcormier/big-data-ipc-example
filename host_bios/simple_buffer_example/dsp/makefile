@@ -38,18 +38,18 @@ EXBASE = ..
 include $(EXBASE)/products.mak
 
 srcs = MainDsp.c Server.c
-objs = $(addprefix bin/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66,$(srcs)))
-CONFIG = bin/$(PLATFORM)/$(PROFILE)/configuro
+objs = $(addprefix bin/$(BOARD_NAME)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66,$(srcs)))
+CONFIG = bin/$(BOARD_NAME)/$(PROFILE)/configuro
 
 locallibsrcs = shared/bigdataxlat/bios/bigdataxlat.c
-locallibobjs = $(addprefix bin/shared/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66,$(locallibsrcs)))
+locallibobjs = $(addprefix bin/shared/$(BOARD_NAME)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66,$(locallibsrcs)))
 
 PKGPATH := $(BIOS_INSTALL_DIR)/packages
 PKGPATH := $(PKGPATH)+$(IPC_INSTALL_DIR)/packages
 PKGPATH := $(PKGPATH)+$(XDC_INSTALL_DIR)/packages
 
--include $(addprefix bin/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66.dep,$(srcs)))
--include $(addprefix bin/shared/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66.dep,$(locallibsrcs)))
+-include $(addprefix bin/$(BOARD_NAME)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66.dep,$(srcs)))
+-include $(addprefix bin/shared/$(BOARD_NAME)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66.dep,$(locallibsrcs)))
 
 .PRECIOUS: %/compiler.opt %/linker.cmd
 .PHONY: release debug install install_rov server_dsp.x
@@ -63,19 +63,19 @@ debug:
 release:
 	$(MAKE) PROFILE=release server_dsp.x
 
-server_dsp.x: bin/$(PLATFORM)/$(PROFILE)/server_dsp.xe66
+server_dsp.x: bin/$(BOARD_NAME)/$(PROFILE)/server_dsp.xe66
 
-bin/$(PLATFORM)/$(PROFILE)/server_dsp.xe66: $(objs) $(locallibobjs) $(libs) $(CONFIG)/linker.cmd
+bin/$(BOARD_NAME)/$(PROFILE)/server_dsp.xe66: $(objs) $(locallibobjs) $(libs) $(CONFIG)/linker.cmd
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	$(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-bin/$(PLATFORM)/$(PROFILE)/obj/%.oe66: %.c $(CONFIG)/compiler.opt
+bin/$(BOARD_NAME)/$(PROFILE)/obj/%.oe66: %.c $(CONFIG)/compiler.opt
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	$(CC) $(CPPFLAGS) $(CFLAGS) --output_file=$@ -fc $<
 
-bin/shared/$(PLATFORM)/$(PROFILE)/obj/%.oe66: ../%.c $(CONFIG)/compiler.opt
+bin/shared/$(BOARD_NAME)/$(PROFILE)/obj/%.oe66: ../%.c $(CONFIG)/compiler.opt
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	$(CC) $(CPPFLAGS) $(CFLAGS) --output_file=$@ -fc $<
@@ -100,15 +100,15 @@ install:
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 #	@$(MKDIR) $(EXEC_DIR)/debug
-#	$(CP) bin/$(PLATFORM)/debug/server_dsp.xe66 $(EXEC_DIR)/debug
+#	$(CP) bin/$(BOARD_NAME)/debug/server_dsp.xe66 $(EXEC_DIR)/debug
 	@$(MKDIR) $(EXEC_DIR)/release
-	$(CP) bin/$(PLATFORM)/release/server_dsp.xe66 $(EXEC_DIR)/release
+	$(CP) bin/$(BOARD_NAME)/release/server_dsp.xe66 $(EXEC_DIR)/release
 
 install_rov:
 	@$(ECHO) "#"
 	@$(ECHO) "# Making $@ ..."
 	@$(MKDIR) $(EXEC_DIR)/release
-	$(CP) bin/$(PLATFORM)/release/configuro/package/cfg/Dsp_pe66.rov.xs $(EXEC_DIR)/release
+	$(CP) bin/$(BOARD_NAME)/release/configuro/package/cfg/Dsp_pe66.rov.xs $(EXEC_DIR)/release
 
 help:
 	@$(ECHO) "make                   # build executable"
@@ -160,11 +160,11 @@ endif
 #  ======== create output directories ========
 ifneq (clean,$(MAKECMDGOALS))
 ifneq (,$(PROFILE))
-ifeq (,$(wildcard bin/$(PLATFORM)/$(PROFILE)/obj))
-    $(shell $(MKDIR) -p bin/$(PLATFORM)/$(PROFILE)/obj)
+ifeq (,$(wildcard bin/$(BOARD_NAME)/$(PROFILE)/obj))
+    $(shell $(MKDIR) -p bin/$(BOARD_NAME)/$(PROFILE)/obj)
 endif
-ifeq (,$(wildcard bin/shared/$(PLATFORM)/$(PROFILE)/obj/shared/bigdataxlat/bios))
-    $(shell $(MKDIR) -p bin/shared/$(PLATFORM)/$(PROFILE)/obj/shared/bigdataxlat/bios)
+ifeq (,$(wildcard bin/shared/$(BOARD_NAME)/$(PROFILE)/obj/shared/bigdataxlat/bios))
+    $(shell $(MKDIR) -p bin/shared/$(BOARD_NAME)/$(PROFILE)/obj/shared/bigdataxlat/bios)
 endif
 endif
 endif
