@@ -33,6 +33,7 @@
 #
 #  ======== makefile ========
 #
+PLATFORM = DRA7XX
 
 EXBASE = ..
 include $(EXBASE)/products.mak

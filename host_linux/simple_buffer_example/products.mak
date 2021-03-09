@@ -57,20 +57,20 @@ endif
 # ../products.mak or ../../products.mak, uncomment and assign the variables
 # below.
 
-#DEPOT = _your_depot_folder_
+DEPOT = /home/jcormier/local/ti-processor-sdk-rtos-am57xx-evm-06.03.00.106
 #### Linux toolchain ####
-#TOOLCHAIN_LONGNAME     = arm-none-linux-gnueabi
-#TOOLCHAIN_INSTALL_DIR  = $(DEPOT)/_your_linux_gcc_toolchain_install_
-#TOOLCHAIN_PREFIX       = $(TOOLCHAIN_INSTALL_DIR)/bin/$(TOOLCHAIN_LONGNAME)-
+TOOLCHAIN_LONGNAME     = arm-linux-gnueabihf
+TOOLCHAIN_INSTALL_DIR  = $(DEPOT)/../ti-processor-sdk-linux-am57xx-evm-06.03.00.106/linux-devkit/sysroots/x86_64-arago-linux/usr/bin/
+TOOLCHAIN_PREFIX       = $(TOOLCHAIN_INSTALL_DIR)/$(TOOLCHAIN_LONGNAME)-
 
 #### BIOS-side dependencies ####
-#BIOS_INSTALL_DIR       = $(DEPOT)/_your_bios_install_
-#IPC_INSTALL_DIR        = $(DEPOT)/_your_ipc_install_
-#XDC_INSTALL_DIR        = $(DEPOT)/_your_xdctools_install_
+BIOS_INSTALL_DIR       = $(DEPOT)/bios_6_76_03_01
+IPC_INSTALL_DIR        = $(DEPOT)/ipc_3_50_04_08
+XDC_INSTALL_DIR        = $(DEPOT)/xdctools_3_55_02_22_core
 
 #### BIOS-side toolchains ####
-#ti.targets.arm.elf.M4  = $(DEPOT)/_your_ti_arm_codegen_install_
-#ti.targets.elf.C66     = $(DEPOT)/_your_ti_dsp_codegen_install_
+ti.targets.arm.elf.M4  = $(DEPOT)/ti-cgt-arm_18.12.5.LTS
+ti.targets.elf.C66     = $(DEPOT)/ti-cgt-c6000_8.3.2
 
 # Use this goal to print your product variables.
 .show:

@@ -33,6 +33,7 @@
 #
 #  ======== Makefile ========
 #
+PLATFORM = DRA7XX
 
 srcs = main_host.c App.c
 locallibsrcs = shared/bigdataxlat/bigdataxlat.c \

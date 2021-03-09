@@ -35,10 +35,11 @@
 #
 
 # edit PROCLIST list to control how many executables to build
+PLATFORM = DRA7XX
 
 ifeq ($(PLATFORM),DRA7XX)
 PROCLIST = host dsp
-#PROCLIST = host ipu 
+#PROCLIST = host ipu
 PROC_HOST_NAME = "HOST"
 PROC_DSP_NAME = "DSP1"
 #PROC_IPU_NAME = "IPU1"
