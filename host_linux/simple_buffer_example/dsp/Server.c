@@ -47,6 +47,7 @@
 #include <xdc/runtime/Registry.h>
 
 #include <stdio.h>
+#include <time.h>
 
 /* package header files */
 #include <ti/ipc/MessageQ.h>
@@ -60,6 +61,10 @@
 
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>
+
+// local defines
+//   #define NEXT_GEN_STREAMING_SERVICE        // Un-comment to use next gen
+
 
 /* local header files */
 #include "../shared/AppCommon.h"
@@ -126,22 +131,44 @@ leave:
  */
 Int Server_exec()
 {
+    Int                 dspCtr = 1;
+    Int                 i, j, k;
+    Int                 recPtr = 0;
+    Int                 retVal;
     Int                 status;
-    Bool                running = TRUE;
+//  Int                 streamingBuffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_FLAGS_PER_BUFFER];
+
+    float               dlyVal = 0.0;
+    volatile int        dlyCtr = 0;
+
+//  Uint32 *bigDataLocalPtr;
+    Shared_Mem          *shmem;
+
+    clock_t             startTime;
+
+    Bool                running   = TRUE;
+    Bool                firstPass = TRUE;
+
     App_Msg *           msg;
     MessageQ_QueueId    queId;
     UInt16  regionId1=1;
-    Uint32 *bigDataLocalPtr;
-    Int j;
     UInt32 errorCount=0;
-    Int retVal;
     bigDataLocalDesc_t bigDataLocalDesc;
     SharedRegion_Entry srEntry;
     void *sharedRegionAllocPtr=NULL;
 
-    Log_print0(Diags_ENTRY | Diags_INFO, "--> Server_exec:");
+//    struct timespec {        ts;
+
+    Log_print0(Diags_ENTRY | Diags_INFO, "--> Server_exec-B:");
+        
+//    startTime = clock();
+//    clock_gettime (CLOCK_REALTIME, &ts);
+//    startTime = ts.tv_nsec;
+//    startTime = Clock_getTicks();
+//    startTime = -1;
 
     while (running) {
+
 
         /* wait for inbound message */
         status = MessageQ_get(Module.slaveQue, (MessageQ_Msg *)&msg,
@@ -152,93 +179,121 @@ Int Server_exec()
         }
         Log_print1(Diags_ENTRY | Diags_INFO, "Message received...%d", msg->id);
         switch (msg->cmd) {
-        case App_CMD_SHARED_REGION_INIT:
-            /* Create Shared region with information from init message */
-            /* Configure srEntry */
-            
-            status = Resource_physToVirt((UInt32)msg->u.sharedRegionInitCfg.base,
-                                         (UInt32 *)&sharedRegionAllocPtr);
+
+        case App_CMD_SHARED_REGION_INIT:  // <=============================================================
+
+            // Create Shared region with information from init message 
+            status = Resource_physToVirt((UInt32)msg->u.sharedRegionInitCfg.base, (UInt32 *)&sharedRegionAllocPtr);
             if(status != Resource_S_SUCCESS) {
                 printf("Resource_physToVirt failed \n");
                 goto leave;
             }
-            srEntry.base = sharedRegionAllocPtr;
-            srEntry.len = msg->u.sharedRegionInitCfg.size;
-            srEntry.ownerProcId = MultiProc_self();
-            srEntry.isValid = TRUE;
-            /* Make sure CacheEnable is TRUE if using cached memory */
-            srEntry.cacheEnable = TRUE;
-            srEntry.createHeap = FALSE;
+
+            srEntry.base          = sharedRegionAllocPtr;
+            srEntry.len           = msg->u.sharedRegionInitCfg.size;
+            srEntry.ownerProcId   = MultiProc_self();
+            srEntry.isValid       = TRUE;
+            srEntry.cacheEnable   = TRUE;
+            srEntry.createHeap    = FALSE;
             srEntry.cacheLineSize = 128;
-            srEntry.name = "SR1";
+            srEntry.name          = "SR1";
 
             status = SharedRegion_setEntry (regionId1, &srEntry);
             Log_print0(Diags_ENTRY | Diags_INFO, "Shared region entry configured...");
 
-        break;
+            break;
 
-        case App_CMD_BIGDATA:
-#ifdef DEBUG
-            Log_print1(Diags_ENTRY | Diags_INFO, "msg->cmd=App_CMD_BIGDATA,msg->ptr=0x%x",
-                (IArg)msg->u.bigDataSharedDesc.sharedPtr);
-#endif
+        case App_CMD_BIGDATA:        // <=============================================================
 
-            /* Translate to local descriptor */
-            retVal = bigDataXlatetoLocalAndSync(regionId1,
-                &msg->u.bigDataSharedDesc, &bigDataLocalDesc);
-            if (retVal) {
-                status = -1;
-                goto leave;
-            }
-            bigDataLocalPtr = (Uint32 *)bigDataLocalDesc.localPtr;
-#ifdef DEBUG
-            /* print message from buffer */
-            Log_print1(Diags_INFO, " Received message %d", msg->id);
-            Log_print1(Diags_INFO, " Local Pointer 0x%x", (UInt32)bigDataLocalPtr);
-            Log_print0(Diags_INFO, " First 8 bytes: ");
-            for ( j = 0; j < 8 && j < bigDataLocalDesc.size/sizeof(uint32_t); j+=4)
-                Log_print4(Diags_INFO, "0x%x, 0x%x, 0x%x, 0x%x",
-                    bigDataLocalPtr[j], bigDataLocalPtr[j+1], bigDataLocalPtr[j+2], bigDataLocalPtr[j+3]);
-            Log_print0(Diags_INFO, " Last 8 bytes: ");
-            for ( j = (bigDataLocalDesc.size/sizeof(uint32_t))-8 ;
-                 j < bigDataLocalDesc.size/sizeof(uint32_t); j+=4)
-                Log_print4(Diags_INFO, "0x%x, 0x%x, 0x%x, 0x%x",
-                    bigDataLocalPtr[j], bigDataLocalPtr[j+1], bigDataLocalPtr[j+2], bigDataLocalPtr[j+3]);
-#endif
-            /* Check values to see expected results */
-            for( j=0; j < bigDataLocalDesc.size/sizeof(uint32_t); j++) {
-                if ( bigDataLocalPtr[j] != (msg->id+j) ) {
-                    errorCount++;
+            firstPass = TRUE;
+// >>>>     while (shmem->dspBuffPtr >= 0) {
+            k=0;
+            for (k=0; k<HIGH_SPEED_NUMBER_OF_BUFFERS+1; k++) {
+//          while (k<HIGH_SPEED_NUMBER_OF_BUFFERS) {
+
+                // Translate to local descriptor 
+                retVal = bigDataXlatetoLocalAndSync(regionId1, &msg->u.bigDataSharedDesc, &bigDataLocalDesc);
+                if (retVal) {
+                    status = -1;
+                    goto leave;
+                }    
+
+                shmem = (Shared_Mem *) bigDataLocalDesc.localPtr;
+
+                i = shmem->dspBuffPtr;
+                if ( ((shmem->bufferFilled >> i) & 1) == 0) {           // make sure buffer is ready to be filled
+                    for (recPtr = 0; recPtr<HIGH_SPEED_NUMBER_OF_RECORDS; recPtr++) {
+                        for (j=0; j<HIGH_SPEED_NUMBER_OF_FLAGS; j++) {
+                            if (j==0) {
+                                shmem->buffer[i][recPtr*32+j] = dspCtr++;
+                            } else if (j==1) {
+                                shmem->buffer[i][recPtr*32+j] = 0xbad0dad;
+                            } else if (j==2) {
+                                shmem->buffer[i][recPtr*32+j] = k;
+                            } else if (j== (HIGH_SPEED_NUMBER_OF_FLAGS-1) ) {
+                                shmem->buffer[i][recPtr*32+j] = (int) (dlyVal*100.);
+                            } else {
+                                shmem->buffer[i][recPtr*32+j] = i * 0x1000000 + recPtr * 0x1000 + j;
+                            }
+                        }
+                        // Do some calculations here to simulate normal DSP operation
+                        for (dlyCtr = 0; dlyCtr<100000; dlyCtr++); {
+                            dlyVal = (float) (dlyCtr % 0x1fffffff) * 0.9;
+                        }
+
+                    }
                 }
-            }
+                shmem->bufferFilled |= (1<<shmem->dspBuffPtr);          // set buffer's bit to indicate it's full
+                shmem->dspBuffPtr    = (shmem->dspBuffPtr+1)%HIGH_SPEED_NUMBER_OF_BUFFERS;
 
-            /* Fill new data */
-            for ( j=0; j < bigDataLocalDesc.size/sizeof(uint32_t); j++)
-                bigDataLocalPtr[j] = msg->id + 10 +j;
+#if 0
+                        // kluge to add some bytes after the last record so that the last record gets transmitted 
+                        for (j=0; j<HIGH_SPEED_NUMBER_OF_FLAGS; j++) {
+                                shmem->buffer[i+1][j] = 0xdeadbeef;
+                        }
+#endif
 
-            /* Translate to Shared Descriptor and Sync */
-            retVal = bigDataXlatetoGlobalAndSync(regionId1,
-                &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
-            if (retVal) {
-                status = -1;
-                goto leave;
+//              memcpy ((void *) (shmem->buffer[i]), (void *) streamingBuffer[i], STREAMING_BUFFER_SIZE);
+
+
+                // Translate to Shared Descriptor and Sync
+                retVal = bigDataXlatetoGlobalAndSync(regionId1, &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
+                if (retVal) {
+                    status = -1;
+                    goto leave;
+                }
+
+                // send message back (on first buffer fill only)
+                if (firstPass) {    
+                    queId = MessageQ_getReplyQueue(msg);
+                    MessageQ_put(queId, (MessageQ_Msg)msg);
+
+                    firstPass = FALSE;
+                }
+
+                // Delay a short while to simulate normal dsp calcs
+                Task_sleep(1);                                          // delay in ms
             }    
-        break;
 
-        case App_CMD_SHUTDOWN:
+            break;
+
+        case App_CMD_SHUTDOWN:        // <=============================================================
             running = FALSE;
-        break;
+            break;
 
         default:
-        break;
+            break;
         }
 
         /* process the message */
         Log_print2(Diags_INFO, "Server_exec: processed id %d, cmd=0x%x", msg->id, msg->cmd);
 
         /* send message back */
-        queId = MessageQ_getReplyQueue(msg);
-        MessageQ_put(queId, (MessageQ_Msg)msg);
+        if (msg->cmd != App_CMD_BIGDATA) {
+            queId = MessageQ_getReplyQueue(msg);
+            MessageQ_put(queId, (MessageQ_Msg)msg);
+        }
+
     } /* while (running) */
 
 leave:

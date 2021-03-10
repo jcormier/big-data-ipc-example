@@ -40,6 +40,8 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 
 #include <ti/cmem.h>
 
@@ -56,7 +58,11 @@
 #include "App.h"
 
 /* Application specific defines */
+#define DEBUG 1
 #define BIG_DATA_POOL_SIZE 0x1000000
+
+//#define STREAMING_BUFFER_SIZE   HIGH_SPEED_FLAGS_PER_BUFFER * 4         // 4K 
+// #define NEXT_GEN_STREAMING
 
 /* round up the value 'size' to the next 'align' boundary */
 #define ROUNDUP(size, align) \
@@ -85,6 +91,7 @@ Int App_create(UInt16 remoteProcId)
 
     printf("--> App_create:\n");
 
+
     /* setting default values */
     Module.hostQue = NULL;
     Module.slaveQue = MessageQ_INVALIDMESSAGEQ;
@@ -105,9 +112,14 @@ Int App_create(UInt16 remoteProcId)
     /* open the remote message queue */
     sprintf(msgqName, App_SlaveMsgQueName, MultiProc_getName(remoteProcId));
 
+    printf("     - remoteProcId, msgqName: %d, %s\n", remoteProcId, msgqName);
+
     do {
         status = MessageQ_open(msgqName, &Module.slaveQue);
         sleep(1);
+
+    printf ("MessageQ_open status = %d\n", status);
+
     } while (status == MessageQ_E_NOTFOUND);
 
     if (status < 0) {
@@ -155,28 +167,41 @@ leave:
  */
 Int App_exec(Void)
 {
-    Int         status;
-    App_Msg *   msg;
-    UInt32 *bigDataLocalPtr;
-    Int         i,j;
-    UInt16  regionId1=1;
-    SharedRegion_Entry *pSrEntry;
-    void *sharedRegionAllocPtr=NULL;
-    Int pool_id;
-    CMEM_AllocParams cmemAttrs;
-    HeapMem_Handle sr1Heap;
-    UInt16 regionId;
-    UInt32 errorCount=0;
-    Int retVal;
-    bigDataLocalDesc_t bigDataLocalDesc;
-    SharedRegion_Config sharedRegionConfig;
-    SharedRegion_Entry srEntry;
-    HeapMem_Config HeapMemConfig;
-    HeapMem_Params heapMem_params;
-    Memory_Stats stats;
-    HeapMem_ExtendedStats extStats;
+    Int                     errorCtr = 0;
+    Int                     expectedDspCtr = 1;
+    Int                     i,j, k;
+    Int                     nBigDataBuffers;
+    Int                     pool_id;
+    Int                     retVal;
+    Int                     sbPtr = 0;
+    Int                     status;
+    Int                     streamingBuffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_FLAGS_PER_BUFFER];
+    Int                     diagBuffer[500][6];
+    Int                     diagBuffCtr = 0;
 
-    printf("--> App_exec:\n");
+    UInt32                  errorCount=0;
+
+    UInt16                  regionId;
+    UInt16                  regionId1=1;
+
+    Shared_Mem              *shmem;
+
+//  UInt32         *bigDataLocalPtr;
+
+    App_Msg *               msg;
+    SharedRegion_Entry      *pSrEntry;
+    void                    *sharedRegionAllocPtr=NULL;
+    CMEM_AllocParams        cmemAttrs;
+    HeapMem_Handle          sr1Heap;
+    bigDataLocalDesc_t      bigDataLocalDesc;
+    SharedRegion_Config     sharedRegionConfig;
+    SharedRegion_Entry      srEntry;
+    HeapMem_Config          HeapMemConfig;
+    HeapMem_Params          heapMem_params;
+    Memory_Stats            stats;
+    HeapMem_ExtendedStats   extStats;
+
+    printf("--> App_exec-4:\n");
 
     /* CMEM: contiguous memory manager for HLOS */
     /* initialised here */
@@ -264,8 +289,6 @@ Int App_exec(Void)
 
     /* fill process pipeline */
     for (i = 1; i <= 3; i++) {
-        printf("App_exec: sending message %d\n", i);
-
         /* allocate message */
         msg = (App_Msg *)MessageQ_alloc(Module.heapId, Module.msgSize);
 
@@ -278,6 +301,8 @@ Int App_exec(Void)
         MessageQ_setReplyQueue(Module.hostQue, (MessageQ_Msg)msg);
 
         if ( i == 1) {
+            printf("App_exec: sending message %d (REGION_INIT)\n", i);
+
             /* fill in message payload for Shared region init*/
             msg->cmd = App_CMD_SHARED_REGION_INIT;
             msg->id = i;
@@ -291,66 +316,119 @@ Int App_exec(Void)
             }
             msg->u.sharedRegionInitCfg.size = (UInt64)(pSrEntry->len);
         } else {
+            printf("App_exec: sending message %d (NOP)\n", i);
             /* fill in message payload */
             msg->cmd = App_CMD_NOP;
             msg->id = i;
-	}
+    }
 
         /* send message */
         MessageQ_put(Module.slaveQue, (MessageQ_Msg)msg);
     }
 
+
+    nBigDataBuffers = 1;
     /* process steady state (keep pipeline full) */
-    for (i = 4; i <= 16; i++) {
+    for (i = 4; i <=  4+2+nBigDataBuffers; i++) {
 
         /* Now this section of code starts receiving messages
            See the next section for the code for sending further messages */
         /* Receive messages: Start <======================================= */
 
         /* wait for return message */
-        status = MessageQ_get(Module.hostQue, (MessageQ_Msg *)&msg,
-            MessageQ_FOREVER);
-
+        status = MessageQ_get (Module.hostQue, (MessageQ_Msg *)&msg, MessageQ_FOREVER);
         if (status < 0) {
             goto leave;
         }
+
+        printf("App_exec: message received %d\n", msg->id);
 
         /* extract message payload */
 
         if (msg->cmd == App_CMD_BIGDATA) {
 
-            retVal = bigDataXlatetoLocalAndSync(msg->regionId,
-                &msg->u.bigDataSharedDesc, &bigDataLocalDesc);
+            retVal = bigDataXlatetoLocalAndSync(msg->regionId, &msg->u.bigDataSharedDesc, &bigDataLocalDesc);
             if (retVal) {
                 status = -1;
                 goto leave;
             }
-            bigDataLocalPtr = (UInt32 *)bigDataLocalDesc.localPtr;
-#ifdef DEBUG
-            /* print data from big data buffer */
-            printf(" Received back buffer %d\n", msg->id);
-            printf(" First 8 bytes: \n");
-            for ( j = 0; j < 8 && j < bigDataLocalDesc.size/sizeof(uint32_t); j+=4)
-                printf("0x%x, 0x%x, 0x%x, 0x%x\n",
-                    bigDataLocalPtr[j], bigDataLocalPtr[j+1], bigDataLocalPtr[j+2], bigDataLocalPtr[j+3]);
-            printf(" Last 8 bytes: \n");
-            for ( j = (bigDataLocalDesc.size/sizeof(uint32_t))-8 ;
-                 j < bigDataLocalDesc.size/sizeof(uint32_t); j+=4)
-                printf("0x%x, 0x%x, 0x%x, 0x%x\n",
-                    bigDataLocalPtr[j], bigDataLocalPtr[j+1], bigDataLocalPtr[j+2], bigDataLocalPtr[j+3]);
-#endif
-            /* Check values to see expected results */
-            for( j=0; j < bigDataLocalDesc.size/sizeof(uint32_t); j++) {
-                if ( bigDataLocalPtr[j] != (msg->id+10+j) ) {
-                    errorCount++;
-                }
+
+//          bigDataLocalPtr = (UInt32 *)bigDataLocalDesc.localPtr;
+            shmem = (Shared_Mem *)bigDataLocalDesc.localPtr;
+
+            printf ("BIGDATA received, bufferFilled = %8.8x\n", shmem->bufferFilled);
+
+
+            // Process the first streaming packet
+            sbPtr     = 0;
+
+            diagBuffer[0][0] = shmem->bufferFilled;
+            diagBuffer[0][1] = shmem->buffer[0][31*32];
+
+            // Retrieve the first buffer
+            if ( (shmem->bufferFilled >> shmem->armBuffPtr) & 1 ) {     // if the DSP has filled this buffer
+                memcpy ((void *) (  streamingBuffer[shmem->armBuffPtr]), 
+                                    (void *) (shmem->buffer[shmem->armBuffPtr]), 
+                                    STREAMING_BUFFER_SIZE );
+
+                errorCtr             = 0;
+                shmem->bufferFilled &= ~(1<<shmem->armBuffPtr);         // clear bit to indicate buffer is free
+                shmem->armBuffPtr    = (shmem->armBuffPtr+1)%HIGH_SPEED_NUMBER_OF_BUFFERS;
             }
 
-            /* Free big data buffer */
-            HeapMem_free(sr1Heap, bigDataLocalPtr, bigDataLocalDesc.size);
-        }
+            retVal = bigDataXlatetoGlobalAndSync (regionId, &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
+            if (retVal) {
+                status = -1;
+                printf("bigDataXlatetoGlobalAndSync failed\n");
+                goto leave;
+            }
 
-        printf("App_exec: message received %d\n", msg->id);
+            // Next gen streaming data
+            j = 1;
+            while (j<HIGH_SPEED_NUMBER_OF_BUFFERS) {
+
+                retVal = bigDataXlatetoLocalAndSync(msg->regionId, &msg->u.bigDataSharedDesc, &bigDataLocalDesc);
+                if (retVal) {
+                    status = -1;
+                    goto leave;
+                }
+                shmem = (Shared_Mem *)bigDataLocalDesc.localPtr;
+
+                diagBuffer[j][0] = shmem->bufferFilled;
+
+
+                if ( (shmem->bufferFilled >> shmem->armBuffPtr) & 1 ) { // if the DSP has filled this buffer
+
+
+                    // Retrieve the next buffer
+                    memcpy ( (void *) (streamingBuffer[shmem->armBuffPtr]), 
+                             (void *) (shmem->buffer[shmem->armBuffPtr]), 
+                             STREAMING_BUFFER_SIZE );
+
+                    shmem->bufferFilled &= ~(1<<shmem->armBuffPtr);     // clear this buffer's full bit => ready to fill
+                    shmem->armBuffPtr    = (shmem->armBuffPtr+1)%HIGH_SPEED_NUMBER_OF_BUFFERS;
+
+
+                    retVal = bigDataXlatetoGlobalAndSync (regionId, &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
+                    if (retVal) {
+                        status = -1;
+                        printf("bigDataXlatetoGlobalAndSync failed\n");
+                        goto leave;
+                    }
+
+                    j++;                                                // increment buffer pointer
+
+                } else {
+                    errorCtr++;
+                }
+
+
+                usleep (1000);                                          // delay in micro-seconds (10^-6)
+            }
+
+
+            HeapMem_free(sr1Heap, shmem, bigDataLocalDesc.size);        // Free big data buffer 
+        }
 
         /* free the message */
         MessageQ_free((MessageQ_Msg)msg);
@@ -374,51 +452,62 @@ Int App_exec(Void)
         MessageQ_setReplyQueue(Module.hostQue, (MessageQ_Msg)msg);
 
         /* fill in message payload */
-        if (i < 14) {
+        if (i < 4+nBigDataBuffers) {
+               printf("App_exec: sending message %d (BIGDATA)\n", i);
 
             /* Send Big data messages */
-
             msg->cmd = App_CMD_BIGDATA;
-            msg->id = i;
+            msg->id  = i;
 
             /* Allocate buffer from HeapMem */
-            bigDataLocalPtr = (UInt32 *)(HeapMem_alloc(sr1Heap, BIGDATA_BUF_SIZE, BIGDATA_BUF_ALIGN));
-
-            if (!bigDataLocalPtr) {
+//          bigDataLocalPtr = (UInt32 *) (HeapMem_alloc (sr1Heap, BIGDATA_BUF_SIZE, BIGDATA_BUF_ALIGN) );
+            shmem = (Shared_Mem *) (HeapMem_alloc (sr1Heap, BIGDATA_BUF_SIZE, BIGDATA_BUF_ALIGN) );
+            if (!shmem) {
                 status = -1;
                 printf("HeapMem_alloc failed\n");
                 goto leave;
             }
 
-            /* Fill Big data buffer */
-            for(j=0; j< BIGDATA_BUF_SIZE/sizeof(uint32_t); j++) {
-               bigDataLocalPtr[j] = j+i;
+            // Initialized pointers for continuous operation
+            shmem->bufferFilled = 0;                                    // all buffers available
+            shmem->dspBuffPtr   = 0;                                    // initialize the pointer to the first buffer
+            shmem->armBuffPtr   = 0;                                    // initialize the pointer to the first buffer
+    
+            // Initialize data buffers to zero
+            for (j=0; j<HIGH_SPEED_NUMBER_OF_BUFFERS; j++) {
+                for (k=0; k<HIGH_SPEED_FLAGS_PER_BUFFER; k++) {
+                    shmem->buffer[j][k]   = 0;
+                    streamingBuffer[j][k] = 0;
+                }
             }
 
-            /* Populate the Local descriptor */
-            bigDataLocalDesc.localPtr = (Ptr)bigDataLocalPtr;
-            bigDataLocalDesc.size = BIGDATA_BUF_SIZE;
+            // Populate the Local descriptor 
+            bigDataLocalDesc.localPtr = (void *)shmem;
+            bigDataLocalDesc.size     = BIGDATA_BUF_SIZE;
 
-            retVal = bigDataXlatetoGlobalAndSync(regionId,
-                &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
+            retVal = bigDataXlatetoGlobalAndSync (regionId, &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
             if (retVal) {
                 status = -1;
                 printf("bigDataXlatetoGlobalAndSync failed\n");
                 goto leave;
             }
+
             msg->regionId = regionId;
+
         } else {
-            if (i == 16) {
-                /* Last message will tell the slave to shutdown */
-                msg->cmd = App_CMD_SHUTDOWN;
-                msg->id = i;
+            if (i == 4+2+nBigDataBuffers) {
+                printf("App_exec: sending message %d (SHUTDOWN)\n", i);
+                
+                msg->cmd = App_CMD_SHUTDOWN;                            // Last message will tell the slave to shutdown 
+                msg->id  = i;
+
             } else {
-                /* Send dummy NOP messages before shutdown */
-                msg->cmd = App_CMD_NOP;
-                msg->id = i;
+                printf("App_exec: sending message %d (NOP)\n", i);
+                
+                msg->cmd = App_CMD_NOP;                                    // Send dummy NOP messages before shutdown 
+                msg->id  = i;
             }
         }
-        printf("App_exec: Sending message %d\n", i);
 
         /* send message */
         MessageQ_put(Module.slaveQue, (MessageQ_Msg)msg);
@@ -438,7 +527,7 @@ Int App_exec(Void)
             printf("MessageQ_get failed\n");
             goto leave;
         }
-        printf("App_exec: message received: %d\n", msg->id);
+        printf("App_exec: message received-3: %d\n", msg->id);
 
         /* extract message payload */
 
@@ -454,13 +543,21 @@ leave:
         /* free the message */
         CMEM_free(sharedRegionAllocPtr, &cmemAttrs);
     }
-    /* Print error count if non-zero */
-    if (errorCount) {
-        printf("App_exec: Error Count %d\n", errorCount);
-        status = -1;
+
+    printf ("# of sweeps that a buffer wasn't ready from DSP: %d\nReceived buffer: \n", errorCtr);
+
+    printf (" buffer\t\trecord\t\tdspCtr\t\t    [3]\t\t BuffReady \n");
+
+    for (i=0; i<HIGH_SPEED_NUMBER_OF_BUFFERS; i++) {
+        for (j=0; j<HIGH_SPEED_NUMBER_OF_RECORDS; j++) {
+
+            printf (" %2.2d\t\t  %2.2d\t\t %2.2d \t\t%8.8x\t\t%8.8x \n", i, j, streamingBuffer[i][j*32], 
+                                                                               streamingBuffer[i][j*32+3],
+                                                                               diagBuffer[i][0]);
+        }
     }
-    else
-        printf("App_exec: Data check clean\n");
+
+    status = 0;
 
     printf("<-- App_exec: %d\n", status);
     return(status);

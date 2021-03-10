@@ -53,6 +53,14 @@ extern "C" {
 #define App_CMD_BIGDATA                0x00000002
 #define App_CMD_SHUTDOWN               0x02000000
 
+#define HIGH_SPEED_NUMBER_OF_RECORDS	32								// # of records / buffer
+#define HIGH_SPEED_NUMBER_OF_FLAGS		32								// # of flags / record (1 sweep)
+#define HIGH_SPEED_NUMBER_OF_BUFFERS    16                              // # of buffers avail in shared mem
+#define HIGH_SPEED_FLAGS_PER_BUFFER     HIGH_SPEED_NUMBER_OF_FLAGS * HIGH_SPEED_NUMBER_OF_RECORDS
+#define HIGH_SPEED_STREAMING_BUFFERS   128                              // # of 32-flag buffers saved to local memory (ARM Memory not ARM/DSP-shared mem)
+#define STREAMING_BUFFER_SIZE           HIGH_SPEED_FLAGS_PER_BUFFER *4
+
+
 typedef struct {
     UInt64              base;
     UInt64              size;
@@ -63,11 +71,20 @@ typedef struct {
     UInt32              cmd;
     Int32               id;
     UInt16              regionId;
+
     union {
         SharedRegionInitCfg sharedRegionInitCfg;
         bigDataSharedDesc_t bigDataSharedDesc;
     } u;
 } App_Msg;
+
+typedef struct {
+	Int32				dspBuffPtr;
+	Int32				armBuffPtr;
+	UInt32				bufferFilled;                                   // bit mask 
+
+	Int32				buffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_FLAGS_PER_BUFFER];
+} Shared_Mem;
 
 #define App_MsgHeapId           0
 #define App_HostMsgQueName      "HOST:MsgQ:01"
