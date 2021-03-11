@@ -506,9 +506,9 @@ Int App_exec(Void)
     long buf_size_calc = sizeKB * 1000000;
     // Divide by uS to get KB/s
     printf("Round trip throughput\n");
-    printf("min: %ld KB/s\n", buf_size_calc / min);
+    printf("min: %ld KB/s\n", buf_size_calc / max);
     printf("avg: %ld KB/s\n", buf_size_calc / avg);
-    printf("max: %ld KB/s\n", buf_size_calc / max);
+    printf("max: %ld KB/s\n", buf_size_calc / min);
 
 leave:
     if (sr1Heap) {
