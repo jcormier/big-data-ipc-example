@@ -486,29 +486,29 @@ Int App_exec(Void)
     }
 
     /* Print stats i = 4...13 */
-    long min = LONG_MAX;
-    long max = LONG_MIN;
-    long long sum = 0;
+    UInt32 min = LONG_MAX;
+    UInt32 max = 0;
+    UInt64 sum = 0;
     for (i = numPipelineMessages + 1; i <= numPipelineMessages + numBigMessages; i++) {
         // printf("%d: %ld\n", i, elapsed[i]);
         if (elapsed[i] < min) min = elapsed[i];
         if (elapsed[i] > max) max = elapsed[i];
         sum += elapsed[i];
     }
-    long avg = sum / numBigMessages;
-    int sizeKB = bufSize / 1024;
+    UInt32 avg = sum / numBigMessages;
+    UInt32 sizeKB = bufSize / 1024;
     printf("%d %dkB messages sent\n", numBigMessages, sizeKB);
     printf("Round trip time\n");
-    printf("min: %ld uS\n", min);
-    printf("avg: %ld uS\n", avg);
-    printf("max: %ld uS\n", max);
+    printf("min: %u uS\n", min);
+    printf("avg: %u uS\n", avg);
+    printf("max: %u uS\n", max);
     // KB * uS/s
-    long buf_size_calc = sizeKB * 1000000;
+    UInt64 buf_size_calc = sizeKB * 1000000;
     // Divide by uS to get KB/s
     printf("Round trip throughput\n");
-    printf("min: %ld KB/s\n", buf_size_calc / max);
-    printf("avg: %ld KB/s\n", buf_size_calc / avg);
-    printf("max: %ld KB/s\n", buf_size_calc / min);
+    printf("min: %llu KB/s\n", buf_size_calc / (UInt64)max);
+    printf("avg: %llu KB/s\n", buf_size_calc / (UInt64)avg);
+    printf("max: %llu KB/s\n", buf_size_calc / (UInt64)min);
 
 leave:
     if (sr1Heap) {
