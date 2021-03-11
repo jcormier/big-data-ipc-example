@@ -510,6 +510,12 @@ Int App_exec(Void)
     printf("avg: %llu KB/s\n", buf_size_calc / (UInt64)avg);
     printf("max: %llu KB/s\n", buf_size_calc / (UInt64)min);
 
+    long elapsed_total_time = diff(start[numPipelineMessages + 1], start[numPipelineMessages + numBigMessages  + 1]);
+    printf("Total throughput for all messages\n");
+    printf("Total time: %ld uS\n", elapsed_total_time);
+    printf("Overall throughput: %llu KB/s\n", (buf_size_calc * numBigMessages) / (UInt64)elapsed_total_time);
+
+
 leave:
     if (sr1Heap) {
         HeapMem_delete(&sr1Heap);
