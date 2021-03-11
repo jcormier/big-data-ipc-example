@@ -56,23 +56,28 @@ static Int Main_parseArgs(Int argc, Char *argv[]);
 
 #define Main_USAGE "\
 Usage:\n\
-    app_host [options] procName\n\
+    app_host [options] procName [numMessages] [bufSize]\n\
 \n\
 Arguments:\n\
     procName      : the name of the remote processor\n\
+    numMessages   : Number of messages to send\n\
+    bufSize       : Size of shared memory buffer in messages (KB)\n\
 \n\
 Options:\n\
     h   : print this help message\n\
     l   : list the available remote names\n\
 \n\
 Examples:\n\
-    app_host DSP\n\
+    app_host DSP1\n\
+    app_host DSP1 10 16\n\
     app_host -l\n\
     app_host -h\n\
 \n"
 
 /* private data */
 static String   Main_remoteProcName = NULL;
+static UInt32   Main_numMessages = 10;
+static UInt32   Main_messageSizeKB = 16;
 
 
 /*
@@ -130,7 +135,7 @@ Int Main_main(Void)
     remoteProcId = MultiProc_getId(Main_remoteProcName);
 
     /* application create phase */
-    status = App_create(remoteProcId);
+    status = App_create(remoteProcId, Main_numMessages, Main_messageSizeKB);
 
     if (status < 0) {
         goto leave;
@@ -222,6 +227,15 @@ Int Main_parseArgs(Int argc, Char *argv[])
         switch (argNum) {
             case 1: /* name of proc #1 */
                 Main_remoteProcName = argv[opt];
+                break;
+
+            case 2: /* name of proc #1 */
+                Main_numMessages = strtoul(argv[opt], NULL, 0);
+                if (Main_numMessages < 1) Main_numMessages = 1;
+                break;
+
+            case 3: /* name of proc #1 */
+                Main_messageSizeKB = strtoul(argv[opt], NULL, 0);
                 break;
 
             default:

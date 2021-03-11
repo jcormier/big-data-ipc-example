@@ -41,7 +41,7 @@
 extern "C" {
 #endif
 
-Int App_create(UInt16 remoteProcId);
+Int App_create(UInt16 remoteProcId, UInt32 bigMsgCount, UInt32 bigMsgSize);
 Int App_delete();
 Int App_exec();
 

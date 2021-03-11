@@ -70,6 +70,8 @@ typedef struct {
     MessageQ_QueueId        slaveQue;   // opened remotely
     UInt16                  heapId;     // MessageQ heapId
     UInt32                  msgSize;
+    UInt32                  bigMsgCount;
+    UInt32                  bigMsgSize;
 } App_Module;
 
 /* private data */
@@ -94,7 +96,7 @@ long diff(struct timespec start, struct timespec end)
  *  ======== App_create ========
  */
 
-Int App_create(UInt16 remoteProcId)
+Int App_create(UInt16 remoteProcId, UInt32 bigMsgCount, UInt32 bigMsgSize)
 {
     Int                 status = 0;
     MessageQ_Params     msgqParams;
@@ -107,6 +109,8 @@ Int App_create(UInt16 remoteProcId)
     Module.slaveQue = MessageQ_INVALIDMESSAGEQ;
     Module.heapId = App_MsgHeapId;
     Module.msgSize = sizeof(App_Msg);
+    Module.bigMsgCount = bigMsgCount;
+    Module.bigMsgSize = bigMsgSize;
 
     /* create local message queue (inbound messages) */
     MessageQ_Params_init(&msgqParams);
@@ -193,8 +197,11 @@ Int App_exec(Void)
     Memory_Stats stats;
     HeapMem_ExtendedStats extStats;
 
+    // Size in bytes
+    const int bufSize = Module.bigMsgSize * 1024;
+
     const int numPipelineMessages = 3;
-    const int numBigMessages = 10;
+    const int numBigMessages = Module.bigMsgCount;
     const int numTotalMessages = numPipelineMessages + numBigMessages + numPipelineMessages;
     struct timespec          start[numTotalMessages], end;
     long                     elapsed[numTotalMessages];
@@ -317,7 +324,7 @@ Int App_exec(Void)
             /* fill in message payload */
             msg->cmd = App_CMD_NOP;
             msg->id = i;
-	}
+        }
 
         /* send message */
         MessageQ_put(Module.slaveQue, (MessageQ_Msg)msg);
@@ -414,7 +421,7 @@ Int App_exec(Void)
             msg->id = i;
 
             /* Allocate buffer from HeapMem */
-            bigDataLocalPtr = (UInt32 *)(HeapMem_alloc(sr1Heap, BIGDATA_BUF_SIZE, BIGDATA_BUF_ALIGN));
+            bigDataLocalPtr = (UInt32 *)(HeapMem_alloc(sr1Heap, bufSize, BIGDATA_BUF_ALIGN));
 
             if (!bigDataLocalPtr) {
                 status = -1;
@@ -423,13 +430,13 @@ Int App_exec(Void)
             }
 
             /* Fill Big data buffer */
-            for(j=0; j< BIGDATA_BUF_SIZE/sizeof(uint32_t); j++) {
+            for(j=0; j< bufSize/sizeof(uint32_t); j++) {
                bigDataLocalPtr[j] = j+i;
             }
 
             /* Populate the Local descriptor */
             bigDataLocalDesc.localPtr = (Ptr)bigDataLocalPtr;
-            bigDataLocalDesc.size = BIGDATA_BUF_SIZE;
+            bigDataLocalDesc.size = bufSize;
 
             retVal = bigDataXlatetoGlobalAndSync(regionId,
                 &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
@@ -489,7 +496,7 @@ Int App_exec(Void)
         sum += elapsed[i];
     }
     long avg = sum / numBigMessages;
-    int sizeKB = BIGDATA_BUF_SIZE / 1024;
+    int sizeKB = bufSize / 1024;
     printf("%d %dkB messages sent\n", numBigMessages, sizeKB);
     printf("Round trip time\n");
     printf("min: %ld uS\n", min);
