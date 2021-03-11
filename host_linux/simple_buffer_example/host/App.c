@@ -40,6 +40,8 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <time.h>
+#include <limits.h>
 
 #include <ti/cmem.h>
 
@@ -72,6 +74,21 @@ typedef struct {
 
 /* private data */
 static App_Module Module;
+
+long diff(struct timespec start, struct timespec end)
+{
+    struct timespec temp;
+
+    if ((end.tv_nsec - start.tv_nsec) < 0) {
+        temp.tv_sec = end.tv_sec - start.tv_sec-1;
+        temp.tv_nsec = 1000000000UL + end.tv_nsec - start.tv_nsec;
+    } else {
+        temp.tv_sec = end.tv_sec - start.tv_sec;
+        temp.tv_nsec = end.tv_nsec - start.tv_nsec;
+    }
+
+    return (temp.tv_sec * 1000000UL + temp.tv_nsec / 1000);
+}
 
 /*
  *  ======== App_create ========
@@ -176,6 +193,12 @@ Int App_exec(Void)
     Memory_Stats stats;
     HeapMem_ExtendedStats extStats;
 
+    const int numPipelineMessages = 3;
+    const int numBigMessages = 10;
+    const int numTotalMessages = numPipelineMessages + numBigMessages + numPipelineMessages;
+    struct timespec          start[numTotalMessages], end;
+    long                     elapsed[numTotalMessages];
+
     printf("--> App_exec:\n");
 
     /* CMEM: contiguous memory manager for HLOS */
@@ -248,7 +271,7 @@ Int App_exec(Void)
     HeapMem_Params_init(&heapMem_params);
     heapMem_params.name = "sr1HeapMem";
     heapMem_params.sharedAddr = pSrEntry->base;
-    heapMem_params.sharedBufSize = ROUNDUP(pSrEntry->len, pSrEntry->cacheLineSize); 
+    heapMem_params.sharedBufSize = ROUNDUP(pSrEntry->len, pSrEntry->cacheLineSize);
     heapMem_params.gate = NULL;
     sr1Heap = HeapMem_create(&heapMem_params);
     if (!sr1Heap) {
@@ -263,7 +286,7 @@ Int App_exec(Void)
     printf("App_taskFxn: SR_1 heap, buf=0x%p,size=%d\n", extStats.buf, extStats.size);
 
     /* fill process pipeline */
-    for (i = 1; i <= 3; i++) {
+    for (i = 1; i <= numPipelineMessages; i++) {
         printf("App_exec: sending message %d\n", i);
 
         /* allocate message */
@@ -301,7 +324,7 @@ Int App_exec(Void)
     }
 
     /* process steady state (keep pipeline full) */
-    for (i = 4; i <= 16; i++) {
+    for (i = numPipelineMessages + 1; i <= numTotalMessages; i++) {
 
         /* Now this section of code starts receiving messages
            See the next section for the code for sending further messages */
@@ -355,9 +378,18 @@ Int App_exec(Void)
         /* free the message */
         MessageQ_free((MessageQ_Msg)msg);
 
+        /* Include msg deallocation, heap deallocation and count pattern checking in timing */
+        if (msg->cmd == App_CMD_BIGDATA) {
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            elapsed[msg->id] = diff(start[msg->id], end);
+        }
+
         printf("App_exec: Preparing message %d\n", i);
 
         /* Receive messages: End =======================================> */
+
+        /* Include msg allcoation, heap allocation and count pattern generation in timing */
+        clock_gettime(CLOCK_MONOTONIC, &start[i]);
 
         /* Send messages: Start  <======================================= */
 
@@ -373,8 +405,8 @@ Int App_exec(Void)
         /* set the return address in the message header */
         MessageQ_setReplyQueue(Module.hostQue, (MessageQ_Msg)msg);
 
-        /* fill in message payload */
-        if (i < 14) {
+        /* fill in message payload i = 4...13 */
+        if (i <= (numPipelineMessages + numBigMessages)) {
 
             /* Send Big data messages */
 
@@ -408,7 +440,7 @@ Int App_exec(Void)
             }
             msg->regionId = regionId;
         } else {
-            if (i == 16) {
+            if (i == numTotalMessages) {
                 /* Last message will tell the slave to shutdown */
                 msg->cmd = App_CMD_SHUTDOWN;
                 msg->id = i;
@@ -428,7 +460,7 @@ Int App_exec(Void)
     }
 
     /* drain process pipeline */
-    for (i = 1; i <= 3; i++) {
+    for (i = 1; i <= numPipelineMessages; i++) {
 
         /* wait for return message */
         status = MessageQ_get(Module.hostQue, (MessageQ_Msg *)&msg,
@@ -445,6 +477,31 @@ Int App_exec(Void)
         /* free the message */
         MessageQ_free((MessageQ_Msg)msg);
     }
+
+    /* Print stats i = 4...13 */
+    long min = LONG_MAX;
+    long max = LONG_MIN;
+    long long sum = 0;
+    for (i = numPipelineMessages + 1; i <= numPipelineMessages + numBigMessages; i++) {
+        // printf("%d: %ld\n", i, elapsed[i]);
+        if (elapsed[i] < min) min = elapsed[i];
+        if (elapsed[i] > max) max = elapsed[i];
+        sum += elapsed[i];
+    }
+    long avg = sum / numBigMessages;
+    int sizeKB = BIGDATA_BUF_SIZE / 1024;
+    printf("%d %dkB messages sent\n", numBigMessages, sizeKB);
+    printf("Round trip time\n");
+    printf("min: %ld uS\n", min);
+    printf("avg: %ld uS\n", avg);
+    printf("max: %ld uS\n", max);
+    // KB * uS/s
+    long buf_size_calc = sizeKB * 1000000;
+    // Divide by uS to get KB/s
+    printf("Round trip throughput\n");
+    printf("min: %ld KB/s\n", buf_size_calc / min);
+    printf("avg: %ld KB/s\n", buf_size_calc / avg);
+    printf("max: %ld KB/s\n", buf_size_calc / max);
 
 leave:
     if (sr1Heap) {
