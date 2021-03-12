@@ -155,7 +155,7 @@ Int Server_exec()
         case App_CMD_SHARED_REGION_INIT:
             /* Create Shared region with information from init message */
             /* Configure srEntry */
-            
+
             status = Resource_physToVirt((UInt32)msg->u.sharedRegionInitCfg.base,
                                          (UInt32 *)&sharedRegionAllocPtr);
             if(status != Resource_S_SUCCESS) {
@@ -191,6 +191,7 @@ Int Server_exec()
                 goto leave;
             }
             bigDataLocalPtr = (Uint32 *)bigDataLocalDesc.localPtr;
+            Log_print0(Diags_ENTRY | Diags_INFO, "ToLocal");
 #ifdef DEBUG
             /* print message from buffer */
             Log_print1(Diags_INFO, " Received message %d", msg->id);
@@ -211,10 +212,13 @@ Int Server_exec()
                     errorCount++;
                 }
             }
+            Log_print0(Diags_ENTRY | Diags_INFO, "Checked");
 
             /* Fill new data */
             for ( j=0; j < bigDataLocalDesc.size/sizeof(uint32_t); j++)
                 bigDataLocalPtr[j] = msg->id + 10 +j;
+
+            Log_print0(Diags_ENTRY | Diags_INFO, "Filled");
 
             /* Translate to Shared Descriptor and Sync */
             retVal = bigDataXlatetoGlobalAndSync(regionId1,
@@ -222,7 +226,7 @@ Int Server_exec()
             if (retVal) {
                 status = -1;
                 goto leave;
-            }    
+            }
         break;
 
         case App_CMD_SHUTDOWN:
