@@ -171,6 +171,14 @@ leave:
     return(status);
 }
 
+void print_times(char *header, long array[], int start, int end) {
+    printf("%s accumulative (uS): ", header);
+    for (int i = start; i <= end; i++) {
+        printf("%ld ", array[i]);
+    }
+    printf("\n");
+}
+
 /*
  *  ======== App_exec ========
  */
@@ -204,6 +212,12 @@ Int App_exec(Void)
     const int numBigMessages = Module.bigMsgCount;
     const int numTotalMessages = numPipelineMessages + numBigMessages + numPipelineMessages;
     struct timespec          start[numTotalMessages], end;
+    long                     elapsedHeapAlloc[numTotalMessages];
+    long                     elapsedFilled[numTotalMessages];
+    long                     elapsedToGlobal[numTotalMessages];
+    long                     elapsedGet[numTotalMessages];
+    long                     elapsedToLocal[numTotalMessages];
+    long                     elapsedChecked[numTotalMessages];
     long                     elapsed[numTotalMessages];
 
     printf("--> App_exec:\n");
@@ -345,6 +359,9 @@ Int App_exec(Void)
             goto leave;
         }
 
+        clock_gettime(CLOCK_MONOTONIC, &end);
+        elapsedGet[msg->id] = diff(start[msg->id], end);
+
         /* extract message payload */
 
         if (msg->cmd == App_CMD_BIGDATA) {
@@ -356,6 +373,10 @@ Int App_exec(Void)
                 goto leave;
             }
             bigDataLocalPtr = (UInt32 *)bigDataLocalDesc.localPtr;
+
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            elapsedToLocal[msg->id] = diff(start[msg->id], end);
+
 #ifdef DEBUG
             /* print data from big data buffer */
             printf(" Received back buffer %d\n", msg->id);
@@ -375,6 +396,9 @@ Int App_exec(Void)
                     errorCount++;
                 }
             }
+
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            elapsedChecked[msg->id] = diff(start[msg->id], end);
 
             /* Free big data buffer */
             HeapMem_free(sr1Heap, bigDataLocalPtr, bigDataLocalDesc.size);
@@ -423,6 +447,9 @@ Int App_exec(Void)
             /* Allocate buffer from HeapMem */
             bigDataLocalPtr = (UInt32 *)(HeapMem_alloc(sr1Heap, bufSize, BIGDATA_BUF_ALIGN));
 
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            elapsedHeapAlloc[msg->id] = diff(start[msg->id], end);
+
             if (!bigDataLocalPtr) {
                 status = -1;
                 printf("HeapMem_alloc failed\n");
@@ -433,6 +460,9 @@ Int App_exec(Void)
             for(j=0; j< bufSize/sizeof(uint32_t); j++) {
                bigDataLocalPtr[j] = j+i;
             }
+
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            elapsedFilled[msg->id] = diff(start[msg->id], end);
 
             /* Populate the Local descriptor */
             bigDataLocalDesc.localPtr = (Ptr)bigDataLocalPtr;
@@ -446,6 +476,9 @@ Int App_exec(Void)
                 goto leave;
             }
             msg->regionId = regionId;
+
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            elapsedToGlobal[msg->id] = diff(start[msg->id], end);
         } else {
             if (i == numTotalMessages) {
                 /* Last message will tell the slave to shutdown */
@@ -484,6 +517,15 @@ Int App_exec(Void)
         /* free the message */
         MessageQ_free((MessageQ_Msg)msg);
     }
+
+    /* Print raw times, space separated */
+    print_times("elapsedHeapAlloc", elapsedHeapAlloc, numPipelineMessages + 1, numPipelineMessages + numBigMessages);
+    print_times("elapsedFilled", elapsedFilled, numPipelineMessages + 1, numPipelineMessages + numBigMessages);
+    print_times("elapsedToGlobal", elapsedToGlobal, numPipelineMessages + 1, numPipelineMessages + numBigMessages);
+    print_times("elapsedGet", elapsedGet, numPipelineMessages + 1, numPipelineMessages + numBigMessages);
+    print_times("elapsedToLocal", elapsedToLocal, numPipelineMessages + 1, numPipelineMessages + numBigMessages);
+    print_times("elapsedChecked", elapsedChecked, numPipelineMessages + 1, numPipelineMessages + numBigMessages);
+    print_times("elapsed", elapsed, numPipelineMessages + 1, numPipelineMessages + numBigMessages);
 
     /* Print stats i = 4...13 */
     UInt32 min = LONG_MAX;
