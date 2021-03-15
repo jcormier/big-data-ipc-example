@@ -208,7 +208,7 @@ Int App_exec(Void)
     // Size in bytes
     const int bufSize = Module.bigMsgSize * 1024;
 
-    const int numPipelineMessages = 3;
+    const int numPipelineMessages = 1;
     const int numBigMessages = Module.bigMsgCount;
     const int numTotalMessages = numPipelineMessages + numBigMessages + numPipelineMessages;
     struct timespec          start[numTotalMessages], end;
