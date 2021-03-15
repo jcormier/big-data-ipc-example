@@ -47,6 +47,7 @@
 #include <xdc/runtime/Registry.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 
 /* package header files */
 #include <ti/ipc/MessageQ.h>
@@ -139,7 +140,21 @@ Int Server_exec()
     SharedRegion_Entry srEntry;
     void *sharedRegionAllocPtr=NULL;
 
+    // Create a 256KB local buffer to test if memory accesses is also slow
+#define USE_LOCAL_BUFFER
+#ifdef USE_LOCAL_BUFFER
+    const int bufSize = 256*1024;
+    UInt32* buffer = malloc(bufSize);
+    if (!buffer) {
+        Log_print0(Diags_ENTRY | Diags_INFO, "Malloc failed");
+        return -1;
+    }
+#endif
+
     Log_print0(Diags_ENTRY | Diags_INFO, "--> Server_exec:");
+
+    // TODO Test disabling cache to see which calls take longer
+    // Cache_disable(Cache_Type_ALL);
 
     while (running) {
 
@@ -191,7 +206,12 @@ Int Server_exec()
                 goto leave;
             }
             bigDataLocalPtr = (Uint32 *)bigDataLocalDesc.localPtr;
+#ifdef USE_LOCAL_BUFFER
+            bigDataLocalPtr = buffer;
+#endif
+
             Log_print0(Diags_ENTRY | Diags_INFO, "ToLocal");
+//#define DEBUG
 #ifdef DEBUG
             /* print message from buffer */
             Log_print1(Diags_INFO, " Received message %d", msg->id);
@@ -212,6 +232,7 @@ Int Server_exec()
                     errorCount++;
                 }
             }
+
             Log_print0(Diags_ENTRY | Diags_INFO, "Checked");
 
             /* Fill new data */
