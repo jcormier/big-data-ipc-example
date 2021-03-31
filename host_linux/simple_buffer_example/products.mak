@@ -67,6 +67,7 @@ TOOLCHAIN_PREFIX       = $(TOOLCHAIN_INSTALL_DIR)/$(TOOLCHAIN_LONGNAME)-
 BIOS_INSTALL_DIR       = $(DEPOT)/bios_6_76_03_01
 IPC_INSTALL_DIR        = $(DEPOT)/ipc_3_50_04_08
 XDC_INSTALL_DIR        = $(DEPOT)/xdctools_3_55_02_22_core
+PDK_INSTALL_DIR		   = $(DEPOT)/pdk_am57xx_1_0_17
 
 #### BIOS-side toolchains ####
 ti.targets.arm.elf.M4  = $(DEPOT)/ti-cgt-arm_18.12.5.LTS

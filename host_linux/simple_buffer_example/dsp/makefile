@@ -48,6 +48,7 @@ locallibobjs = $(addprefix bin/shared/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c
 PKGPATH := $(BIOS_INSTALL_DIR)/packages
 PKGPATH := $(PKGPATH)+$(IPC_INSTALL_DIR)/packages
 PKGPATH := $(PKGPATH)+$(XDC_INSTALL_DIR)/packages
+PKGPATH := $(PKGPATH)+$(PDK_INSTALL_DIR)/packages
 
 -include $(addprefix bin/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66.dep,$(srcs)))
 -include $(addprefix bin/shared/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66.dep,$(locallibsrcs)))
