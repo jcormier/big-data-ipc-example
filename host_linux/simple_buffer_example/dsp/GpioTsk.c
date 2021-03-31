@@ -96,13 +96,11 @@ Void gpioTsk(UArg arg0, UArg arg1)
     Log_print0(Diags_INFO, "Gpio Init complete");
 
     while(running) {
-        GPIO_write(GpioDspOut, GPIO_PIN_VAL_HIGH);
-        Task_sleep(1000);
-        GPIO_write(GpioDspOut, GPIO_PIN_VAL_LOW);
-        Task_sleep(1000);
+        int val = GPIO_read(GpioDspIn);
+        GPIO_write(GpioDspOut, val);
 
         /* Sleep to yield */
-        Task_sleep(10);
+        Task_yield();
     } /* while (running) */
 
 leave:
