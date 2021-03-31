@@ -49,17 +49,20 @@
 #include <ti/ipc/Std.h>
 #include "Std.h"
 #include <ti/ipc/MessageQ.h>
-#include "HeapMem.h"
+//#include "HeapMem.h"
 #include "SharedRegion.h"
 #include "MemoryDefs.h"
+#include <ti/ipc/GateMP.h>
+#include "Cache.h"
 
 /* local header files */
-#include "../shared/AppCommon.h"
+#include "../shared/ipcCommon.h"
 #include "App.h"
 
 /* Application specific defines */
-#define DEBUG 1
-#define BIG_DATA_POOL_SIZE 0x1000000
+#define DEBUG                                   1
+#define BIG_DATA_POOL_SIZE              0x1000000
+//#define HIGH_SPEED_STREAMING_BUFFERS        128
 
 //#define STREAMING_BUFFER_SIZE   HIGH_SPEED_FLAGS_PER_BUFFER * 4         // 4K 
 // #define NEXT_GEN_STREAMING
@@ -168,21 +171,27 @@ leave:
 Int App_exec(Void)
 {
     Int                     errorCtr = 0;
-    Int                     expectedDspCtr = 1;
+//  Int                     expectedDspCtr = 1;
     Int                     i,j, k;
-    Int                     nBigDataBuffers;
+    Int                     msgID = 0;
     Int                     pool_id;
     Int                     retVal;
-    Int                     sbPtr = 0;
+//  Int                     sbPtr = 0;
     Int                     status;
     Int                     streamingBuffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_FLAGS_PER_BUFFER];
+//  Int                     streamingBuffer2[STREAMING_BUFFER_SIZE];
     Int                     diagBuffer[500][6];
-    Int                     diagBuffCtr = 0;
+//  Int                     diagBuffCtr = 0;
+    Int                     start, count;
+    Int                     timer;
 
-    UInt32                  errorCount=0;
+//  UInt32                  errorCount=0;
 
     UInt16                  regionId;
     UInt16                  regionId1=1;
+
+    Bool                    getFlags         = TRUE;
+    Bool                    streamingStarted = FALSE;
 
     Shared_Mem              *shmem;
 
@@ -192,14 +201,18 @@ Int App_exec(Void)
     SharedRegion_Entry      *pSrEntry;
     void                    *sharedRegionAllocPtr=NULL;
     CMEM_AllocParams        cmemAttrs;
-    HeapMem_Handle          sr1Heap;
+//  HeapMem_Handle          sr1Heap;
     bigDataLocalDesc_t      bigDataLocalDesc;
     SharedRegion_Config     sharedRegionConfig;
     SharedRegion_Entry      srEntry;
-    HeapMem_Config          HeapMemConfig;
-    HeapMem_Params          heapMem_params;
+//  HeapMem_Config          HeapMemConfig;
+//  HeapMem_Params          heapMem_params;
     Memory_Stats            stats;
-    HeapMem_ExtendedStats   extStats;
+//  HeapMem_ExtendedStats   extStats;
+
+    GateMP_Params           gparams;
+    GateMP_Handle           gateHandle;
+    IArg                    gateKey;
 
     printf("--> App_exec-4:\n");
 
@@ -259,33 +272,6 @@ Int App_exec(Void)
 
     regionId = regionId1;
 
-    /* Setup HeapMem module */
-    HeapMem_getConfig (&HeapMemConfig);
-    status = HeapMem_setup (&HeapMemConfig);
-    if (status < 0) {
-        printf("HeapMem_setup failed\n");
-        goto leave;
-    }
-    printf("HeapMem_setup success\n");
-
-   /* Create HeapMP at run-time:
-       This heap is intended to be used for big data ipc */
-    HeapMem_Params_init(&heapMem_params);
-    heapMem_params.name = "sr1HeapMem";
-    heapMem_params.sharedAddr = pSrEntry->base;
-    heapMem_params.sharedBufSize = ROUNDUP(pSrEntry->len, pSrEntry->cacheLineSize); 
-    heapMem_params.gate = NULL;
-    sr1Heap = HeapMem_create(&heapMem_params);
-    if (!sr1Heap) {
-        printf("sr1Heap creation failed\n");
-        status = -1;
-        goto leave;
-    }
-    printf("HeapMem_create success\n");
-    HeapMem_getStats((HeapMem_Handle)sr1Heap, &stats);
-    printf("App_taskFxn: SR_1 heap, totalSize=%d,totalFreeSize=%d,largestFreeSize=%d\n", stats.totalSize, stats.totalFreeSize, stats.largestFreeSize);
-    HeapMem_getExtendedStats((HeapMem_Handle)sr1Heap, &extStats);
-    printf("App_taskFxn: SR_1 heap, buf=0x%p,size=%d\n", extStats.buf, extStats.size);
 
     /* fill process pipeline */
     for (i = 1; i <= 3; i++) {
@@ -320,16 +306,22 @@ Int App_exec(Void)
             /* fill in message payload */
             msg->cmd = App_CMD_NOP;
             msg->id = i;
-    }
+        }
 
         /* send message */
         MessageQ_put(Module.slaveQue, (MessageQ_Msg)msg);
     }
 
 
-    nBigDataBuffers = 1;
-    /* process steady state (keep pipeline full) */
-    for (i = 4; i <=  4+2+nBigDataBuffers; i++) {
+    msgID            = 4;
+    streamingStarted = FALSE;
+
+    // Retrieve & send 4 messages 
+    //      read-1 SHARED_REGION_INIT / send-4 BIGDATA
+    //      read-2 NOP                / send-5 NOP
+    //      read-3 NOP                / send-6 NOP  
+    //      read-4 BIGDATA            / send-7 SHUTDOWN
+    while (streamingStarted == FALSE) {
 
         /* Now this section of code starts receiving messages
            See the next section for the code for sending further messages */
@@ -341,93 +333,10 @@ Int App_exec(Void)
             goto leave;
         }
 
-        printf("App_exec: message received %d\n", msg->id);
-
-        /* extract message payload */
+        printf("App_exec (v1.0): message received %d\n", msg->id);
 
         if (msg->cmd == App_CMD_BIGDATA) {
-
-            retVal = bigDataXlatetoLocalAndSync(msg->regionId, &msg->u.bigDataSharedDesc, &bigDataLocalDesc);
-            if (retVal) {
-                status = -1;
-                goto leave;
-            }
-
-//          bigDataLocalPtr = (UInt32 *)bigDataLocalDesc.localPtr;
-            shmem = (Shared_Mem *)bigDataLocalDesc.localPtr;
-
-            printf ("BIGDATA received, bufferFilled = %8.8x\n", shmem->bufferFilled);
-
-
-            // Process the first streaming packet
-            sbPtr     = 0;
-
-            diagBuffer[0][0] = shmem->bufferFilled;
-            diagBuffer[0][1] = shmem->buffer[0][31*32];
-
-            // Retrieve the first buffer
-            if ( (shmem->bufferFilled >> shmem->armBuffPtr) & 1 ) {     // if the DSP has filled this buffer
-                memcpy ((void *) (  streamingBuffer[shmem->armBuffPtr]), 
-                                    (void *) (shmem->buffer[shmem->armBuffPtr]), 
-                                    STREAMING_BUFFER_SIZE );
-
-                errorCtr             = 0;
-                shmem->bufferFilled &= ~(1<<shmem->armBuffPtr);         // clear bit to indicate buffer is free
-                shmem->armBuffPtr    = (shmem->armBuffPtr+1)%HIGH_SPEED_NUMBER_OF_BUFFERS;
-            }
-
-            retVal = bigDataXlatetoGlobalAndSync (regionId, &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
-            if (retVal) {
-                status = -1;
-                printf("bigDataXlatetoGlobalAndSync failed\n");
-                goto leave;
-            }
-
-            // Next gen streaming data
-            j = 1;
-            while (j<HIGH_SPEED_NUMBER_OF_BUFFERS) {
-
-                retVal = bigDataXlatetoLocalAndSync(msg->regionId, &msg->u.bigDataSharedDesc, &bigDataLocalDesc);
-                if (retVal) {
-                    status = -1;
-                    goto leave;
-                }
-                shmem = (Shared_Mem *)bigDataLocalDesc.localPtr;
-
-                diagBuffer[j][0] = shmem->bufferFilled;
-
-
-                if ( (shmem->bufferFilled >> shmem->armBuffPtr) & 1 ) { // if the DSP has filled this buffer
-
-
-                    // Retrieve the next buffer
-                    memcpy ( (void *) (streamingBuffer[shmem->armBuffPtr]), 
-                             (void *) (shmem->buffer[shmem->armBuffPtr]), 
-                             STREAMING_BUFFER_SIZE );
-
-                    shmem->bufferFilled &= ~(1<<shmem->armBuffPtr);     // clear this buffer's full bit => ready to fill
-                    shmem->armBuffPtr    = (shmem->armBuffPtr+1)%HIGH_SPEED_NUMBER_OF_BUFFERS;
-
-
-                    retVal = bigDataXlatetoGlobalAndSync (regionId, &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
-                    if (retVal) {
-                        status = -1;
-                        printf("bigDataXlatetoGlobalAndSync failed\n");
-                        goto leave;
-                    }
-
-                    j++;                                                // increment buffer pointer
-
-                } else {
-                    errorCtr++;
-                }
-
-
-                usleep (1000);                                          // delay in micro-seconds (10^-6)
-            }
-
-
-            HeapMem_free(sr1Heap, shmem, bigDataLocalDesc.size);        // Free big data buffer 
+            streamingStarted = TRUE;
         }
 
         /* free the message */
@@ -452,16 +361,15 @@ Int App_exec(Void)
         MessageQ_setReplyQueue(Module.hostQue, (MessageQ_Msg)msg);
 
         /* fill in message payload */
-        if (i < 4+nBigDataBuffers) {
-               printf("App_exec: sending message %d (BIGDATA)\n", i);
+        if (msgID == 4) {
+            printf("App_exec: sending message %d (BIGDATA)\n", msgID);
 
-            /* Send Big data messages */
+            // Send Big data messages 
             msg->cmd = App_CMD_BIGDATA;
-            msg->id  = i;
+            msg->id  = msgID++;
 
             /* Allocate buffer from HeapMem */
-//          bigDataLocalPtr = (UInt32 *) (HeapMem_alloc (sr1Heap, BIGDATA_BUF_SIZE, BIGDATA_BUF_ALIGN) );
-            shmem = (Shared_Mem *) (HeapMem_alloc (sr1Heap, BIGDATA_BUF_SIZE, BIGDATA_BUF_ALIGN) );
+            shmem = (Shared_Mem *) pSrEntry->base;
             if (!shmem) {
                 status = -1;
                 printf("HeapMem_alloc failed\n");
@@ -469,12 +377,14 @@ Int App_exec(Void)
             }
 
             // Initialized pointers for continuous operation
-            shmem->bufferFilled = 0;                                    // all buffers available
             shmem->dspBuffPtr   = 0;                                    // initialize the pointer to the first buffer
             shmem->armBuffPtr   = 0;                                    // initialize the pointer to the first buffer
     
             // Initialize data buffers to zero
             for (j=0; j<HIGH_SPEED_NUMBER_OF_BUFFERS; j++) {
+
+                shmem->bufferFilled[j] = 0;                                    // all buffers available
+
                 for (k=0; k<HIGH_SPEED_FLAGS_PER_BUFFER; k++) {
                     shmem->buffer[j][k]   = 0;
                     streamingBuffer[j][k] = 0;
@@ -485,27 +395,25 @@ Int App_exec(Void)
             bigDataLocalDesc.localPtr = (void *)shmem;
             bigDataLocalDesc.size     = BIGDATA_BUF_SIZE;
 
-            retVal = bigDataXlatetoGlobalAndSync (regionId, &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
-            if (retVal) {
-                status = -1;
-                printf("bigDataXlatetoGlobalAndSync failed\n");
-                goto leave;
-            }
+            Cache_wb (bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
 
-            msg->regionId = regionId;
+            msg->u.bigDataSharedDesc.sharedPtr = SharedRegion_getSRPtr (bigDataLocalDesc.localPtr, regionId);
+            msg->u.bigDataSharedDesc.size      = bigDataLocalDesc.size;
+
+            msg->regionId                      = regionId;
 
         } else {
-            if (i == 4+2+nBigDataBuffers) {
-                printf("App_exec: sending message %d (SHUTDOWN)\n", i);
+            if (msgID == 7) {
+                printf("App_exec: sending message %d (SHUTDOWN)\n", msgID);
                 
                 msg->cmd = App_CMD_SHUTDOWN;                            // Last message will tell the slave to shutdown 
-                msg->id  = i;
+                msg->id  = msgID++;
 
             } else {
-                printf("App_exec: sending message %d (NOP)\n", i);
+                printf("App_exec: sending message %d (NOP)\n", msgID);
                 
                 msg->cmd = App_CMD_NOP;                                    // Send dummy NOP messages before shutdown 
-                msg->id  = i;
+                msg->id  = msgID++;
             }
         }
 
@@ -515,6 +423,63 @@ Int App_exec(Void)
         /* Send messages: End  =======================================> */
 
     }
+
+    //===============================
+    // Process streaming data & flags (goes on forever)
+    //===============================
+    if (streamingStarted) {
+
+        Cache_inv(bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
+
+        // Process the first streaming packet
+        diagBuffer[0][0] = shmem->bufferFilled[shmem->armBuffPtr];
+
+        // Retrieve the first buffer
+        if ( shmem->bufferFilled[shmem->armBuffPtr] == 1 ) {           // if the DSP has filled this buffer
+            memcpy ((void *) (  streamingBuffer[shmem->armBuffPtr]), 
+                                (void *) (shmem->buffer[shmem->armBuffPtr]), 
+                                STREAMING_BUFFER_SIZE );
+
+            shmem->bufferFilled[shmem->armBuffPtr] = 0;                 // clear flag to indicate buffer is free
+            shmem->armBuffPtr    = (shmem->armBuffPtr+1)%HIGH_SPEED_NUMBER_OF_BUFFERS;
+            errorCtr             = 0;
+        }
+
+                printf ("1...\n");
+
+        Cache_wb (bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
+
+
+        // Next gen streaming data
+        j = 1;
+        while (j<HIGH_SPEED_NUMBER_OF_BUFFERS) {
+
+            Cache_inv(bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
+
+            diagBuffer[j][0] = shmem->bufferFilled[shmem->armBuffPtr];
+
+
+            if ( shmem->bufferFilled[shmem->armBuffPtr] == 1 ) {        // if the DSP has filled this buffer
+                // Retrieve the next buffer
+                memcpy ( (void *) (streamingBuffer[shmem->armBuffPtr]), 
+                         (void *) (shmem->buffer[shmem->armBuffPtr]), 
+                         STREAMING_BUFFER_SIZE );
+
+                shmem->bufferFilled[shmem->armBuffPtr] = 0;             // clear this buffer's full bit => ready to fill
+                shmem->armBuffPtr    = (shmem->armBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
+
+                Cache_wb (bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
+
+                j++;                                                // increment buffer pointer
+
+            } else {
+                errorCtr++;
+            }
+
+            usleep (1000);                                          // delay in micro-seconds (10^-6)
+        }    // while 
+
+    }   // if streamingStarted
 
     /* drain process pipeline */
     for (i = 1; i <= 3; i++) {
@@ -536,9 +501,6 @@ Int App_exec(Void)
     }
 
 leave:
-    if (sr1Heap) {
-        HeapMem_delete(&sr1Heap);
-    }
     if (sharedRegionAllocPtr) {
         /* free the message */
         CMEM_free(sharedRegionAllocPtr, &cmemAttrs);

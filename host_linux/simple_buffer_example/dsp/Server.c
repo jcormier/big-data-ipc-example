@@ -47,6 +47,7 @@
 #include <xdc/runtime/Registry.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 /* package header files */
@@ -54,6 +55,7 @@
 #include <ti/ipc/MultiProc.h>
 #include <ti/ipc/SharedRegion.h>
 #include <ti/ipc/HeapMemMP.h>
+#include <ti/ipc/GateMP.h>
 #include <ti/ipc/remoteproc/Resource.h>
 #include <ti/sysbios/hal/Cache.h>
 #include <xdc/runtime/IHeap.h>
@@ -67,10 +69,10 @@
 
 
 /* local header files */
-#include "../shared/AppCommon.h"
+#include "../shared/ipcCommon.h"
 
 /* module header file */
-#include "Server.h"
+#include "../shared/dsp.h"
 
 /* module structure */
 typedef struct {
@@ -81,6 +83,7 @@ typedef struct {
 /* private data */
 Registry_Desc               Registry_CURDESC;
 static Server_Module        Module;
+
 
 /*
  *  ======== Server_init ========
@@ -134,9 +137,12 @@ Int Server_exec()
     Int                 dspCtr = 1;
     Int                 i, j, k;
     Int                 recPtr = 0;
+    Int                 retryCount;
+    Int                 retryLimit = 100;
     Int                 retVal;
     Int                 status;
-//  Int                 streamingBuffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_FLAGS_PER_BUFFER];
+//  Int32               streamingBuffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_FLAGS_PER_BUFFER];
+    Int32               *streamingBuffer;
 
     float               dlyVal = 0.0;
     volatile int        dlyCtr = 0;
@@ -151,21 +157,27 @@ Int Server_exec()
 
     App_Msg *           msg;
     MessageQ_QueueId    queId;
-    UInt16  regionId1=1;
-    UInt32 errorCount=0;
-    bigDataLocalDesc_t bigDataLocalDesc;
-    SharedRegion_Entry srEntry;
-    void *sharedRegionAllocPtr=NULL;
+    UInt16              regionId1  = 1;
+    UInt32              errorCount = 0;
+    bigDataLocalDesc_t  bigDataLocalDesc;
+    SharedRegion_Entry  srEntry;
+    void                *sharedRegionAllocPtr = NULL;
+
+    GateMP_Handle       gateHandle;
+    IArg                gateKey;
 
 //    struct timespec {        ts;
 
-    Log_print0(Diags_ENTRY | Diags_INFO, "--> Server_exec-B:");
+    Log_print0(Diags_ENTRY | Diags_INFO, "--> Server_exec-C:");
         
 //    startTime = clock();
 //    clock_gettime (CLOCK_REALTIME, &ts);
 //    startTime = ts.tv_nsec;
 //    startTime = Clock_getTicks();
 //    startTime = -1;
+
+    streamingBuffer = (Int32 *) malloc(HIGH_SPEED_FLAGS_PER_BUFFER*4);
+
 
     while (running) {
 
@@ -185,7 +197,7 @@ Int Server_exec()
             // Create Shared region with information from init message 
             status = Resource_physToVirt((UInt32)msg->u.sharedRegionInitCfg.base, (UInt32 *)&sharedRegionAllocPtr);
             if(status != Resource_S_SUCCESS) {
-                printf("Resource_physToVirt failed \n");
+                printf("Resource_physToVirt failed\n");
                 goto leave;
             }
 
@@ -205,11 +217,27 @@ Int Server_exec()
 
         case App_CMD_BIGDATA:        // <=============================================================
 
+#if 0
+            retryCount = retryLimit;
+            while (retryCount-- > 0) {
+                status = GateMP_open ("myGate", &gateHandle);
+                if (status >= 0) {
+                    break;
+                }
+                Task_sleep(1);
+            }
+            if (status < 0) {
+                goto leave;
+            }   
+
+            gateKey = GateMP_enter (gateHandle);
+#endif
+
             firstPass = TRUE;
+
 // >>>>     while (shmem->dspBuffPtr >= 0) {
-            k=0;
+
             for (k=0; k<HIGH_SPEED_NUMBER_OF_BUFFERS+1; k++) {
-//          while (k<HIGH_SPEED_NUMBER_OF_BUFFERS) {
 
                 // Translate to local descriptor 
                 retVal = bigDataXlatetoLocalAndSync(regionId1, &msg->u.bigDataSharedDesc, &bigDataLocalDesc);
@@ -221,40 +249,42 @@ Int Server_exec()
                 shmem = (Shared_Mem *) bigDataLocalDesc.localPtr;
 
                 i = shmem->dspBuffPtr;
-                if ( ((shmem->bufferFilled >> i) & 1) == 0) {           // make sure buffer is ready to be filled
+
+                if ( shmem->bufferFilled[i] == 0) {                     // make sure buffer is ready to be filled
+
+                    // test loop to get enough sweeps' data to fill a buffer
                     for (recPtr = 0; recPtr<HIGH_SPEED_NUMBER_OF_RECORDS; recPtr++) {
+
+                        // Normal loop processing ===============================================================
+
                         for (j=0; j<HIGH_SPEED_NUMBER_OF_FLAGS; j++) {
                             if (j==0) {
-                                shmem->buffer[i][recPtr*32+j] = dspCtr++;
+                                streamingBuffer[recPtr*32+j] = dspCtr++;
                             } else if (j==1) {
-                                shmem->buffer[i][recPtr*32+j] = 0xbad0dad;
+                                streamingBuffer[recPtr*32+j] = 0xbad0dad;
                             } else if (j==2) {
-                                shmem->buffer[i][recPtr*32+j] = k;
+                                streamingBuffer[recPtr*32+j] = k;
                             } else if (j== (HIGH_SPEED_NUMBER_OF_FLAGS-1) ) {
-                                shmem->buffer[i][recPtr*32+j] = (int) (dlyVal*100.);
+                                streamingBuffer[recPtr*32+j] = (int) (dlyVal*100.);
                             } else {
-                                shmem->buffer[i][recPtr*32+j] = i * 0x1000000 + recPtr * 0x1000 + j;
+                                streamingBuffer[recPtr*32+j] = i * 0x1000000 + recPtr * 0x1000 + j;
                             }
                         }
+
                         // Do some calculations here to simulate normal DSP operation
                         for (dlyCtr = 0; dlyCtr<100000; dlyCtr++); {
                             dlyVal = (float) (dlyCtr % 0x1fffffff) * 0.9;
                         }
 
+                        // =======================================================================================
+
                     }
                 }
-                shmem->bufferFilled |= (1<<shmem->dspBuffPtr);          // set buffer's bit to indicate it's full
-                shmem->dspBuffPtr    = (shmem->dspBuffPtr+1)%HIGH_SPEED_NUMBER_OF_BUFFERS;
 
-#if 0
-                        // kluge to add some bytes after the last record so that the last record gets transmitted 
-                        for (j=0; j<HIGH_SPEED_NUMBER_OF_FLAGS; j++) {
-                                shmem->buffer[i+1][j] = 0xdeadbeef;
-                        }
-#endif
 
-//              memcpy ((void *) (shmem->buffer[i]), (void *) streamingBuffer[i], STREAMING_BUFFER_SIZE);
-
+                memcpy ((void *) (shmem->buffer[i]), (void *) streamingBuffer, STREAMING_BUFFER_SIZE);
+                shmem->bufferFilled[shmem->dspBuffPtr] = 1;             // set buffer's bit to indicate it's full
+                shmem->dspBuffPtr    = (shmem->dspBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
 
                 // Translate to Shared Descriptor and Sync
                 retVal = bigDataXlatetoGlobalAndSync(regionId1, &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
@@ -262,6 +292,8 @@ Int Server_exec()
                     status = -1;
                     goto leave;
                 }
+
+//              GateMP_leave (gateHandle, gateKey);
 
                 // send message back (on first buffer fill only)
                 if (firstPass) {    
@@ -272,13 +304,24 @@ Int Server_exec()
                 }
 
                 // Delay a short while to simulate normal dsp calcs
-                Task_sleep(1);                                          // delay in ms
+//              Task_sleep(1);                                          // delay in ms
+
+                Log_print1(Diags_ENTRY | Diags_INFO, "Checking buffer %d for invalid records", k);
+                for (i=0; i<HIGH_SPEED_NUMBER_OF_RECORDS; i++) {
+                    if (streamingBuffer[i*32+1] != 0xbad0dad ) {
+                        Log_print1(Diags_ENTRY | Diags_INFO, "record %d is bad", i);
+                    }
+                }
+
             }    
 
             break;
 
         case App_CMD_SHUTDOWN:        // <=============================================================
             running = FALSE;
+
+//          GateMP_close(&gateHandle);
+
             break;
 
         default:
