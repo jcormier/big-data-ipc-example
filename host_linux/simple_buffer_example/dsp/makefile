@@ -38,7 +38,7 @@ PLATFORM = DRA7XX
 EXBASE = ..
 include $(EXBASE)/products.mak
 
-srcs = MainDsp.c Server.c
+srcs = MainDsp.c Server.c GpioTsk.c
 objs = $(addprefix bin/$(PLATFORM)/$(PROFILE)/obj/,$(patsubst %.c,%.oe66,$(srcs)))
 CONFIG = bin/$(PLATFORM)/$(PROFILE)/configuro
 
@@ -127,7 +127,7 @@ LD = $(CGTOOLS)/bin/cl6x -z
 
 CPPFLAGS =
 CFLAGS = -qq -pdsw225 -ppd=$@.dep -ppa $(CCPROFILE_$(PROFILE)) -@$(CONFIG)/compiler.opt -I.
-CFLAGS += -I../shared/$(PLATFORM) -I../shared/bigdataxlat -I../shared/bigdataxlat/bios
+CFLAGS += -I../shared/$(PLATFORM) -I../shared/bigdataxlat -I../shared/bigdataxlat/bios -DSOC_AM572x
 
 # entry point is set to an aligned address so that IPC can load the slave
 LDFLAGS = -w -q -u _c_int00 -c -m $(@D)/obj/$(@F).map

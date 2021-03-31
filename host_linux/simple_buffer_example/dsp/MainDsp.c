@@ -54,6 +54,7 @@
 
 /* private functions */
 static Void smain(UArg arg0, UArg arg1);
+static Void gpioTsk(UArg arg0, UArg arg1);
 
 
 /*
@@ -64,7 +65,7 @@ Int main(Int argc, Char* argv[])
     Error_Block     eb;
     Task_Params     taskParams;
 
-    Log_print0(Diags_ENTRY, "--> main:");
+    Log_print0(Diags_ENTRY, "--> main 2:");
 
     /* must initialize the error block before using it */
     Error_init(&eb);
@@ -74,14 +75,28 @@ Int main(Int argc, Char* argv[])
     taskParams.instance->name = "smain";
     taskParams.arg0 = (UArg)argc;
     taskParams.arg1 = (UArg)argv;
-    taskParams.stackSize = 0x1000;
+    taskParams.stackSize = 0x600;
+    taskParams.priority = 5;
     Task_create(smain, &taskParams, &eb);
 
     if (Error_check(&eb)) {
         System_abort("main: failed to create application startup thread");
     }
 
+    Task_Params_init(&taskParams);
+    taskParams.instance->name = "gpioTsk";
+    taskParams.arg0 = (UArg)argc;
+    taskParams.arg1 = (UArg)argv;
+    taskParams.stackSize = 0x600;
+    taskParams.priority = 3;
+    Task_create(gpioTsk, &taskParams, &eb);
+
+    if (Error_check(&eb)) {
+        System_abort("main: failed to create gpioTsk thread");
+    }
+
     /* start scheduler, this never returns */
+    Log_print0(Diags_EXIT, "Bios_start:");
     BIOS_start();
 
     /* should never get here */
