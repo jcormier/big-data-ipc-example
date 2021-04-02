@@ -391,7 +391,48 @@ Int App_exec(Void)
                 }
             }
 
-            // Populate the Local descriptor 
+            Int dspCtr = 1;
+            for (k=0; k<HIGH_SPEED_NUMBER_OF_BUFFERS+1; k++) {
+
+                i = shmem->dspBuffPtr;
+                Int *Buffer = shmem->buffer[i];
+                // Int Buffer[STREAMING_BUFFER_SIZE];
+
+                if ( shmem->bufferFilled[i] == 0) {                     // make sure buffer is ready to be filled
+
+                    // test loop to get enough sweeps' data to fill a buffer
+                    for (Int recPtr = 0; recPtr<HIGH_SPEED_NUMBER_OF_RECORDS; recPtr++) {
+
+                        // Normal loop processing ===============================================================
+
+                        for (j=0; j<HIGH_SPEED_NUMBER_OF_FLAGS; j++) {
+                            if (j==0) {
+                                Buffer[recPtr*32+j] = dspCtr++;
+                            } else if (j==1) {
+                                Buffer[recPtr*32+j] = 0xbad0dad;
+                            } else if (j==2) {
+                                Buffer[recPtr*32+j] = k;
+                            } else if (j== (HIGH_SPEED_NUMBER_OF_FLAGS-1) ) {
+                                Buffer[recPtr*32+j] = 0; //(int) (dlyVal*100.);
+                            } else {
+                                Buffer[recPtr*32+j] = i * 0x1000000 + recPtr * 0x1000 + j;
+                            }
+                        }
+
+                        // =======================================================================================
+
+                    }
+                }
+
+
+                // memcpy ((void *) (shmem->buffer[i]), (void *) Buffer, STREAMING_BUFFER_SIZE);
+
+                shmem->bufferFilled[shmem->dspBuffPtr] = 1;             // set buffer's bit to indicate it's full
+                shmem->dspBuffPtr    = (shmem->dspBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
+
+            }
+
+            // Populate the Local descriptor
             bigDataLocalDesc.localPtr = (void *)shmem;
             bigDataLocalDesc.size     = BIGDATA_BUF_SIZE;
 
