@@ -56,7 +56,7 @@ GPIO_CallbackFxn gpioCallbackFunctions[] = {
     NULL,
 };
 
-/* GPIO Driver configuration structure */
+/* GPIO Driver configuration structure - Is read by ti/drv/gpio/src/v1/GPIO_v1.c */
 GPIO_v1_Config GPIO_v1_config = {
     gpioPinConfigs,
     gpioCallbackFunctions,
