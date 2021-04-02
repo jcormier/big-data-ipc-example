@@ -212,6 +212,10 @@ Int Server_exec()
 
             status = SharedRegion_setEntry (regionId1, &srEntry);
             Log_print0(Diags_ENTRY | Diags_INFO, "Shared region entry configured...");
+            Log_print1(Diags_INFO, "Shared region base: 0x%x", (IArg)msg->u.sharedRegionInitCfg.base);
+            Log_print1(Diags_INFO, "Shared region size: %d", (IArg)msg->u.sharedRegionInitCfg.size);
+            Log_print1(Diags_INFO, "Local base: 0x%x", (IArg)srEntry.base);
+            Log_print1(Diags_INFO, "Local size: %d", (IArg)srEntry.len);
 
             break;
 
@@ -235,6 +239,9 @@ Int Server_exec()
 
             firstPass = TRUE;
 
+            Log_print1(Diags_ENTRY | Diags_INFO, "msg->cmd=App_CMD_BIGDATA,msg->ptr=0x%x",
+                (IArg)msg->u.bigDataSharedDesc.sharedPtr);
+
 // >>>>     while (shmem->dspBuffPtr >= 0) {
 
             for (k=0; k<HIGH_SPEED_NUMBER_OF_BUFFERS+1; k++) {
@@ -247,6 +254,8 @@ Int Server_exec()
                 }    
 
                 shmem = (Shared_Mem *) bigDataLocalDesc.localPtr;
+                Log_print1(Diags_ENTRY | Diags_INFO, "shmem=0x%x",
+                           (IArg)shmem);
 
                 i = shmem->dspBuffPtr;
 
