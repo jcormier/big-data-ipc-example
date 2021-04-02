@@ -95,6 +95,20 @@ Void gpioSetup(void)
 
     /* Call to ensure pin output matches */
     GpioCallbackFnx();
+
+    CSL_XbarIrqCpuId cpu;
+    uint32_t                           cpuEvent;
+    uint32_t                           xbarIndex;
+
+    /* Copied from GPIO_idkAM572x_board.c, may not be correct */
+    /* Map IPU Intr 49 to GPIO4_IRQ_1 event id 27 */
+    cpu = CSL_XBAR_IRQ_CPU_ID_IPU1;
+    cpuEvent = 49;
+    xbarIndex = cpuEvent - 22;
+
+    /* Configure xbar */
+    CSL_xbarIrqConfigure(cpu, xbarIndex, CSL_XBAR_GPIO1_IRQ_1);
+
 #endif
 }
 
