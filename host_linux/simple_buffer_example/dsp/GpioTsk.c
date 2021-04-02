@@ -46,7 +46,7 @@ enum gpio_pins {
 
 /* GPIO Driver board specific pin configuration structure */
 GPIO_PinConfig gpioPinConfigs[] = {
-	GPIO_IN | GPIO_CFG_IN_INT_BOTH_EDGES | GPIO_CFG_INPUT,
+	GPIO_IN |  GPIO_CFG_INPUT,
 	GPIO_OUT | GPIO_CFG_OUT_LOW,
 };
 
