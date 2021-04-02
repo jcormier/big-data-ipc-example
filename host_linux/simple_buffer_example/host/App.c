@@ -395,8 +395,8 @@ Int App_exec(Void)
             for (k=0; k<HIGH_SPEED_NUMBER_OF_BUFFERS+1; k++) {
 
                 i = shmem->dspBuffPtr;
-                Int *Buffer = shmem->buffer[i];
-                // Int Buffer[STREAMING_BUFFER_SIZE];
+                // Int *Buffer = shmem->buffer[i];
+                Int Buffer[STREAMING_BUFFER_SIZE];
 
                 if ( shmem->bufferFilled[i] == 0) {                     // make sure buffer is ready to be filled
 
@@ -425,7 +425,7 @@ Int App_exec(Void)
                 }
 
 
-                // memcpy ((void *) (shmem->buffer[i]), (void *) Buffer, STREAMING_BUFFER_SIZE);
+                memcpy ((void *) (shmem->buffer[i]), (void *) Buffer, STREAMING_BUFFER_SIZE);
 
                 shmem->bufferFilled[shmem->dspBuffPtr] = 1;             // set buffer's bit to indicate it's full
                 shmem->dspBuffPtr    = (shmem->dspBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
