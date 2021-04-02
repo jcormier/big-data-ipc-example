@@ -33,8 +33,8 @@
 
 /* Port and pin number mask for input and output
    Bits 7-0: Pin number  and Bits 15-8: Port number */
-#define GPIO_IN	 (0x011F) // gpio1_31
-#define GPIO_OUT (0x011C) // gpio1_28
+#define GPIO_IN  GPIO_DEVICE_CONFIG(1, 31) // gpio1_31
+#define GPIO_OUT GPIO_DEVICE_CONFIG(1, 28) // gpio1_28
 
 #define GPIO_PIN_VAL_LOW     (0U)
 #define GPIO_PIN_VAL_HIGH    (1U)
