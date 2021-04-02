@@ -46,7 +46,7 @@ enum gpio_pins {
 
 /* GPIO Driver board specific pin configuration structure */
 GPIO_PinConfig gpioPinConfigs[] = {
-	GPIO_IN | GPIO_CFG_INPUT,
+	GPIO_IN | GPIO_CFG_IN_INT_BOTH_EDGES | GPIO_CFG_INPUT,
 	GPIO_OUT | GPIO_CFG_OUT_LOW,
 };
 
@@ -67,6 +67,36 @@ GPIO_v1_Config GPIO_v1_config = {
 
 /* private data */
 Registry_Desc gpiotsk_desc;
+
+#define USE_GPIO_INTERRUPT
+#ifdef USE_GPIO_INTERRUPT
+
+/*
+ *  ======== Callback function ========
+ */
+Void GpioCallbackFnx(void)
+{
+    int val = GPIO_read(GpioDspIn);
+    GPIO_write(GpioDspOut, val);
+}
+#endif
+
+Void gpioSetup(void)
+{
+    /* GPIO initialization */
+    GPIO_init();
+    Log_print0(Diags_INFO, "Gpio Init complete");
+
+#ifdef USE_GPIO_INTERRUPT
+    GPIO_setCallback(GpioDspIn, GpioCallbackFnx);
+
+    GPIO_enableInt(GpioDspIn);
+    Log_print0(Diags_INFO, "Gpio interupt enabled");
+
+    /* Call to ensure pin output matches */
+    GpioCallbackFnx();
+#endif
+}
 
 
 /*
@@ -91,10 +121,8 @@ Void gpioTsk(UArg arg0, UArg arg1)
 
     Error_init(&eb);
 
-    /* GPIO initialization */
-    GPIO_init();
-    Log_print0(Diags_INFO, "Gpio Init complete");
-
+/* Do this if we aren't using interupts */
+#ifndef USE_GPIO_INTERRUPTS
     while(running) {
         int val = GPIO_read(GpioDspIn);
         GPIO_write(GpioDspOut, val);
@@ -102,6 +130,7 @@ Void gpioTsk(UArg arg0, UArg arg1)
         /* Sleep to yield */
         Task_yield();
     } /* while (running) */
+#endif
 
 leave:
     if (status < 0)

@@ -55,6 +55,7 @@
 /* private functions */
 static Void smain(UArg arg0, UArg arg1);
 static Void gpioTsk(UArg arg0, UArg arg1);
+Void gpioSetup();
 
 
 /*
@@ -65,10 +66,12 @@ Int main(Int argc, Char* argv[])
     Error_Block     eb;
     Task_Params     taskParams;
 
-    Log_print0(Diags_ENTRY, "--> main 2:");
+    Log_print0(Diags_ENTRY, "--> main 3:");
 
     /* must initialize the error block before using it */
     Error_init(&eb);
+
+    gpioSetup();
 
     /* create main thread (interrupts not enabled in main on BIOS) */
     Task_Params_init(&taskParams);
