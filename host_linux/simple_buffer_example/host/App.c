@@ -64,7 +64,7 @@
 #define BIG_DATA_POOL_SIZE              0x1000000
 //#define HIGH_SPEED_STREAMING_BUFFERS        128
 
-//#define STREAMING_BUFFER_SIZE   HIGH_SPEED_FLAGS_PER_BUFFER * 4         // 4K 
+//#define STREAMING_BUFFER_SIZE   HIGH_SPEED_FLAGS_PER_BUFFER * 4         // 4K
 // #define NEXT_GEN_STREAMING
 
 /* round up the value 'size' to the next 'align' boundary */
@@ -316,10 +316,10 @@ Int App_exec(Void)
     msgID            = 4;
     streamingStarted = FALSE;
 
-    // Retrieve & send 4 messages 
+    // Retrieve & send 4 messages
     //      read-1 SHARED_REGION_INIT / send-4 BIGDATA
     //      read-2 NOP                / send-5 NOP
-    //      read-3 NOP                / send-6 NOP  
+    //      read-3 NOP                / send-6 NOP
     //      read-4 BIGDATA            / send-7 SHUTDOWN
     while (streamingStarted == FALSE) {
 
@@ -364,7 +364,7 @@ Int App_exec(Void)
         if (msgID == 4) {
             printf("App_exec: sending message %d (BIGDATA)\n", msgID);
 
-            // Send Big data messages 
+            // Send Big data messages
             msg->cmd = App_CMD_BIGDATA;
             msg->id  = msgID++;
 
@@ -379,7 +379,7 @@ Int App_exec(Void)
             // Initialized pointers for continuous operation
             shmem->dspBuffPtr   = 0;                                    // initialize the pointer to the first buffer
             shmem->armBuffPtr   = 0;                                    // initialize the pointer to the first buffer
-    
+
             // Initialize data buffers to zero
             for (j=0; j<HIGH_SPEED_NUMBER_OF_BUFFERS; j++) {
 
@@ -391,46 +391,46 @@ Int App_exec(Void)
                 }
             }
 
-            Int dspCtr = 1;
-            for (k=0; k<HIGH_SPEED_NUMBER_OF_BUFFERS+1; k++) {
+            // Int dspCtr = 1;
+            // for (k=0; k<HIGH_SPEED_NUMBER_OF_BUFFERS+1; k++) {
 
-                i = shmem->dspBuffPtr;
-                // Int *Buffer = shmem->buffer[i];
-                Int Buffer[STREAMING_BUFFER_SIZE];
+            //     i = shmem->dspBuffPtr;
+            //     // Int *Buffer = shmem->buffer[i];
+            //     Int Buffer[STREAMING_BUFFER_SIZE];
 
-                if ( shmem->bufferFilled[i] == 0) {                     // make sure buffer is ready to be filled
+            //     if ( shmem->bufferFilled[i] == 0) {                     // make sure buffer is ready to be filled
 
-                    // test loop to get enough sweeps' data to fill a buffer
-                    for (Int recPtr = 0; recPtr<HIGH_SPEED_NUMBER_OF_RECORDS; recPtr++) {
+            //         // test loop to get enough sweeps' data to fill a buffer
+            //         for (Int recPtr = 0; recPtr<HIGH_SPEED_NUMBER_OF_RECORDS; recPtr++) {
 
-                        // Normal loop processing ===============================================================
+            //             // Normal loop processing ===============================================================
 
-                        for (j=0; j<HIGH_SPEED_NUMBER_OF_FLAGS; j++) {
-                            if (j==0) {
-                                Buffer[recPtr*32+j] = dspCtr++;
-                            } else if (j==1) {
-                                Buffer[recPtr*32+j] = 0xbad0dad;
-                            } else if (j==2) {
-                                Buffer[recPtr*32+j] = k;
-                            } else if (j== (HIGH_SPEED_NUMBER_OF_FLAGS-1) ) {
-                                Buffer[recPtr*32+j] = 0; //(int) (dlyVal*100.);
-                            } else {
-                                Buffer[recPtr*32+j] = i * 0x1000000 + recPtr * 0x1000 + j;
-                            }
-                        }
+            //             for (j=0; j<HIGH_SPEED_NUMBER_OF_FLAGS; j++) {
+            //                 if (j==0) {
+            //                     Buffer[recPtr*32+j] = dspCtr++;
+            //                 } else if (j==1) {
+            //                     Buffer[recPtr*32+j] = 0xbad0dad;
+            //                 } else if (j==2) {
+            //                     Buffer[recPtr*32+j] = k;
+            //                 } else if (j== (HIGH_SPEED_NUMBER_OF_FLAGS-1) ) {
+            //                     Buffer[recPtr*32+j] = 0; //(int) (dlyVal*100.);
+            //                 } else {
+            //                     Buffer[recPtr*32+j] = i * 0x1000000 + recPtr * 0x1000 + j;
+            //                 }
+            //             }
 
-                        // =======================================================================================
+            //             // =======================================================================================
 
-                    }
-                }
+            //         }
+            //     }
 
 
-                memcpy ((void *) (shmem->buffer[i]), (void *) Buffer, STREAMING_BUFFER_SIZE);
+            //     memcpy ((void *) (shmem->buffer[i]), (void *) Buffer, STREAMING_BUFFER_SIZE);
 
-                shmem->bufferFilled[shmem->dspBuffPtr] = 1;             // set buffer's bit to indicate it's full
-                shmem->dspBuffPtr    = (shmem->dspBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
+            //     shmem->bufferFilled[shmem->dspBuffPtr] = 1;             // set buffer's bit to indicate it's full
+            //     shmem->dspBuffPtr    = (shmem->dspBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
 
-            }
+            // }
 
             // Populate the Local descriptor
             bigDataLocalDesc.localPtr = (void *)shmem;
@@ -446,14 +446,14 @@ Int App_exec(Void)
         } else {
             if (msgID == 7) {
                 printf("App_exec: sending message %d (SHUTDOWN)\n", msgID);
-                
-                msg->cmd = App_CMD_SHUTDOWN;                            // Last message will tell the slave to shutdown 
+
+                msg->cmd = App_CMD_SHUTDOWN;                            // Last message will tell the slave to shutdown
                 msg->id  = msgID++;
 
             } else {
                 printf("App_exec: sending message %d (NOP)\n", msgID);
-                
-                msg->cmd = App_CMD_NOP;                                    // Send dummy NOP messages before shutdown 
+
+                msg->cmd = App_CMD_NOP;                                    // Send dummy NOP messages before shutdown
                 msg->id  = msgID++;
             }
         }
@@ -477,8 +477,8 @@ Int App_exec(Void)
 
         // Retrieve the first buffer
         if ( shmem->bufferFilled[shmem->armBuffPtr] == 1 ) {           // if the DSP has filled this buffer
-            memcpy ((void *) (  streamingBuffer[shmem->armBuffPtr]), 
-                                (void *) (shmem->buffer[shmem->armBuffPtr]), 
+            memcpy ((void *) (  streamingBuffer[shmem->armBuffPtr]),
+                                (void *) (shmem->buffer[shmem->armBuffPtr]),
                                 STREAMING_BUFFER_SIZE );
 
             shmem->bufferFilled[shmem->armBuffPtr] = 0;                 // clear flag to indicate buffer is free
@@ -502,8 +502,8 @@ Int App_exec(Void)
 
             if ( shmem->bufferFilled[shmem->armBuffPtr] == 1 ) {        // if the DSP has filled this buffer
                 // Retrieve the next buffer
-                memcpy ( (void *) (streamingBuffer[shmem->armBuffPtr]), 
-                         (void *) (shmem->buffer[shmem->armBuffPtr]), 
+                memcpy ( (void *) (streamingBuffer[shmem->armBuffPtr]),
+                         (void *) (shmem->buffer[shmem->armBuffPtr]),
                          STREAMING_BUFFER_SIZE );
 
                 shmem->bufferFilled[shmem->armBuffPtr] = 0;             // clear this buffer's full bit => ready to fill
@@ -518,7 +518,7 @@ Int App_exec(Void)
             }
 
             usleep (1000);                                          // delay in micro-seconds (10^-6)
-        }    // while 
+        }    // while
 
     }   // if streamingStarted
 
@@ -554,7 +554,7 @@ leave:
     for (i=0; i<HIGH_SPEED_NUMBER_OF_BUFFERS; i++) {
         for (j=0; j<HIGH_SPEED_NUMBER_OF_RECORDS; j++) {
 
-            printf (" %2.2d\t\t  %2.2d\t\t %2.2d \t\t%8.8x\t\t%8.8x \n", i, j, streamingBuffer[i][j*32], 
+            printf (" %2.2d\t\t  %2.2d\t\t %2.2d \t\t%8.8x\t\t%8.8x \n", i, j, streamingBuffer[i][j*32],
                                                                                streamingBuffer[i][j*32+3],
                                                                                diagBuffer[i][0]);
         }

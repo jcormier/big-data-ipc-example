@@ -169,7 +169,7 @@ Int Server_exec()
 //    struct timespec {        ts;
 
     Log_print0(Diags_ENTRY | Diags_INFO, "--> Server_exec-C:");
-        
+
 //    startTime = clock();
 //    clock_gettime (CLOCK_REALTIME, &ts);
 //    startTime = ts.tv_nsec;
@@ -194,7 +194,7 @@ Int Server_exec()
 
         case App_CMD_SHARED_REGION_INIT:  // <=============================================================
 
-            // Create Shared region with information from init message 
+            // Create Shared region with information from init message
             status = Resource_physToVirt((UInt32)msg->u.sharedRegionInitCfg.base, (UInt32 *)&sharedRegionAllocPtr);
             if(status != Resource_S_SUCCESS) {
                 printf("Resource_physToVirt failed\n");
@@ -232,7 +232,7 @@ Int Server_exec()
             }
             if (status < 0) {
                 goto leave;
-            }   
+            }
 
             gateKey = GateMP_enter (gateHandle);
 #endif
@@ -245,14 +245,13 @@ Int Server_exec()
 // >>>>     while (shmem->dspBuffPtr >= 0) {
 
             for (k=0; k<HIGH_SPEED_NUMBER_OF_BUFFERS+1; k++) {
-                break;
 
-                // Translate to local descriptor 
+                // Translate to local descriptor
                 retVal = bigDataXlatetoLocalAndSync(regionId1, &msg->u.bigDataSharedDesc, &bigDataLocalDesc);
                 if (retVal) {
                     status = -1;
                     goto leave;
-                }    
+                }
 
                 shmem = (Shared_Mem *) bigDataLocalDesc.localPtr;
                 Log_print1(Diags_ENTRY | Diags_INFO, "shmem=0x%x",
@@ -323,6 +322,7 @@ Int Server_exec()
 
                 // Delay a short while to simulate normal dsp calcs
 //              Task_sleep(1);                                          // delay in ms
+
 
                 Log_print1(Diags_ENTRY | Diags_INFO, "Checking buffer %d for invalid records", k);
                 for (i=0; i<HIGH_SPEED_NUMBER_OF_RECORDS; i++) {
