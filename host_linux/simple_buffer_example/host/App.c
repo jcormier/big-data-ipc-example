@@ -436,7 +436,7 @@ Int App_exec(Void)
 
             // Populate the Local descriptor
             bigDataLocalDesc.localPtr = (void *)shmem;
-            bigDataLocalDesc.size     = BIGDATA_BUF_SIZE;
+            bigDataLocalDesc.size     = sizeof(Shared_Mem);
 
             fp = fopen("buffer_before_dsp.bin", "wb");
             if (fp != NULL) {
