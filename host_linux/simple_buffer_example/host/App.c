@@ -378,20 +378,11 @@ Int App_exec(Void)
                 goto leave;
             }
 
+            // Zero shared memory
+            memset(shmem, 0, sizeof(Shared_Mem));
             // Initialized pointers for continuous operation
             shmem->dspBuffPtr   = 0;                                    // initialize the pointer to the first buffer
             shmem->armBuffPtr   = 0;                                    // initialize the pointer to the first buffer
-
-            // Initialize data buffers to zero
-            for (j=0; j<HIGH_SPEED_NUMBER_OF_BUFFERS; j++) {
-
-                shmem->bufferFilled[j] = 0;                                    // all buffers available
-
-                for (k=0; k<HIGH_SPEED_FLAGS_PER_BUFFER; k++) {
-                    shmem->buffer[j][k]   = 0;
-                    streamingBuffer[j][k] = 0;
-                }
-            }
 
             // Int dspCtr = 1;
             // for (k=0; k<HIGH_SPEED_NUMBER_OF_BUFFERS+1; k++) {
