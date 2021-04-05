@@ -469,30 +469,11 @@ Int App_exec(Void)
     //===============================
     if (streamingStarted) {
 
-        printf("ptr: %p, size: %d\n", bigDataLocalDesc.localPtr, bigDataLocalDesc.size);
-        Cache_inv(bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
-
-        // Process the first streaming packet
-        diagBuffer[0][0] = shmem->bufferFilled[shmem->armBuffPtr];
-
-        // Retrieve the first buffer
-        if ( shmem->bufferFilled[shmem->armBuffPtr] == 1 ) {           // if the DSP has filled this buffer
-            memcpy ((void *) (  streamingBuffer[shmem->armBuffPtr]),
-                                (void *) (shmem->buffer[shmem->armBuffPtr]),
-                                STREAMING_BUFFER_SIZE );
-
-            shmem->bufferFilled[shmem->armBuffPtr] = 0;                 // clear flag to indicate buffer is free
-            shmem->armBuffPtr    = (shmem->armBuffPtr+1)%HIGH_SPEED_NUMBER_OF_BUFFERS;
-            errorCtr             = 0;
-        }
-
-                printf ("1...\n");
-
-        Cache_wb (bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
-
+        errorCtr = 0;
+        printf ("1...\n");
 
         // Next gen streaming data
-        j = 1;
+        j = 0;
         while (j<HIGH_SPEED_NUMBER_OF_BUFFERS) {
 
             Cache_inv(bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
