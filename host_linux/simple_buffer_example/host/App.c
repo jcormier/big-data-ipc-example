@@ -171,6 +171,7 @@ leave:
 Int App_exec(Void)
 {
     Int                     errorCtr = 0;
+    Int                     NumOfWrongDspKs = 0;
 //  Int                     expectedDspCtr = 1;
     Int                     i,j, k;
     Int                     msgID = 0;
@@ -487,6 +488,12 @@ Int App_exec(Void)
                          (void *) (shmem->buffer[shmem->armBuffPtr]),
                          STREAMING_BUFFER_SIZE );
 
+                Int dspK = streamingBuffer[shmem->armBuffPtr][0+2];
+                if (dspK != j) {
+                    printf("Error: Buffer %d had count %d\n", j, dspK);
+                    NumOfWrongDspKs++;
+                }
+
                 shmem->bufferFilled[shmem->armBuffPtr] = 0;             // clear this buffer's full bit => ready to fill
                 shmem->armBuffPtr    = (shmem->armBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
 
@@ -536,6 +543,7 @@ Int App_exec(Void)
         fclose(fp);
     }
 
+    printf ("# of wrong dsp Ks: %d\n", NumOfWrongDspKs);
     printf ("# of sweeps that a buffer wasn't ready from DSP: %d\nReceived buffer: \n", errorCtr);
 
     printf (" buffer\t\trecord\t\tdspCtr\t\t    [3]\t\t BuffReady \n");
