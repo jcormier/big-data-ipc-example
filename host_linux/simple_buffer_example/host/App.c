@@ -470,6 +470,7 @@ Int App_exec(Void)
     //===============================
     if (streamingStarted) {
 
+        printf("ptr: %p, size: %d\n", bigDataLocalDesc.localPtr, bigDataLocalDesc.size);
         Cache_inv(bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
 
         // Process the first streaming packet
