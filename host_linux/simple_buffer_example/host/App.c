@@ -214,6 +214,8 @@ Int App_exec(Void)
     GateMP_Handle           gateHandle;
     IArg                    gateKey;
 
+    FILE *fp = NULL;
+
     printf("--> App_exec-4:\n");
 
     /* CMEM: contiguous memory manager for HLOS */
@@ -436,6 +438,12 @@ Int App_exec(Void)
             bigDataLocalDesc.localPtr = (void *)shmem;
             bigDataLocalDesc.size     = BIGDATA_BUF_SIZE;
 
+            fp = fopen("buffer_before_dsp.bin", "wb");
+            if (fp != NULL) {
+                fwrite(bigDataLocalDesc.localPtr, sizeof(char), bigDataLocalDesc.size, fp);
+                fclose(fp);
+            }
+
             Cache_wb (bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
 
             msg->u.bigDataSharedDesc.sharedPtr = SharedRegion_getSRPtr (bigDataLocalDesc.localPtr, regionId);
@@ -540,6 +548,20 @@ Int App_exec(Void)
 
         /* free the message */
         MessageQ_free((MessageQ_Msg)msg);
+    }
+
+    fp = fopen("buffer_after_dsp.bin", "wb");
+    if (fp != NULL)
+    {
+        fwrite(bigDataLocalDesc.localPtr, sizeof(char), bigDataLocalDesc.size, fp);
+        fclose(fp);
+    }
+
+    fp = fopen("streamingbuffer_after_dsp.bin", "wb");
+    if (fp != NULL)
+    {
+        fwrite(streamingBuffer, sizeof(char), sizeof(streamingBuffer), fp);
+        fclose(fp);
     }
 
     printf ("# of sweeps that a buffer wasn't ready from DSP: %d\nReceived buffer: \n", errorCtr);
