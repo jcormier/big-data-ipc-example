@@ -180,7 +180,7 @@ Int App_exec(Void)
     Int                     status;
     Int                     streamingBuffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_FLAGS_PER_BUFFER];
 //  Int                     streamingBuffer2[STREAMING_BUFFER_SIZE];
-    Int                     diagBuffer[500][6];
+    Int                     diagBuffer[NUM_BUFFERS_TO_TEST][6];
 //  Int                     diagBuffCtr = 0;
     Int                     start, count;
     Int                     timer;
@@ -474,7 +474,7 @@ Int App_exec(Void)
 
         // Next gen streaming data
         j = 0;
-        while (j<HIGH_SPEED_NUMBER_OF_BUFFERS) {
+        while (j<NUM_BUFFERS_TO_TEST) {
 
             Cache_inv(bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
 

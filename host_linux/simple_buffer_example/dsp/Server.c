@@ -244,7 +244,7 @@ Int Server_exec()
 
 // >>>>     while (shmem->dspBuffPtr >= 0) {
 
-            for (k=0; k<HIGH_SPEED_NUMBER_OF_BUFFERS+1; k++) {
+            for (k=0; k<NUM_BUFFERS_TO_TEST; k++) {
 
                 // Translate to local descriptor
                 retVal = bigDataXlatetoLocalAndSync(regionId1, &msg->u.bigDataSharedDesc, &bigDataLocalDesc);
