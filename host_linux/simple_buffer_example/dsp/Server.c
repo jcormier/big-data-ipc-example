@@ -307,12 +307,14 @@ Int Server_exec()
                         status = -1;
                         goto leave;
                     }
+                } else {
+                    Log_print1(Diags_ENTRY | Diags_INFO, "Buffer %d skipped due to full buffer", k);
                 }
 
 //              GateMP_leave (gateHandle, gateKey);
 
                 // send message back (on first buffer fill only)
-                if (firstPass) {    
+                if (firstPass) {
                     queId = MessageQ_getReplyQueue(msg);
                     MessageQ_put(queId, (MessageQ_Msg)msg);
 
@@ -330,7 +332,7 @@ Int Server_exec()
                     }
                 }
 
-            }    
+            }
 
             break;
 
