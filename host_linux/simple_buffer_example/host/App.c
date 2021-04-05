@@ -542,12 +542,6 @@ Int App_exec(Void)
         MessageQ_free((MessageQ_Msg)msg);
     }
 
-leave:
-    if (sharedRegionAllocPtr) {
-        /* free the message */
-        CMEM_free(sharedRegionAllocPtr, &cmemAttrs);
-    }
-
     printf ("# of sweeps that a buffer wasn't ready from DSP: %d\nReceived buffer: \n", errorCtr);
 
     printf (" buffer\t\trecord\t\tdspCtr\t\t    [3]\t\t BuffReady \n");
@@ -560,6 +554,13 @@ leave:
                                                                                diagBuffer[i][0]);
         }
     }
+
+leave:
+    if (sharedRegionAllocPtr) {
+        /* free the message */
+        CMEM_free(sharedRegionAllocPtr, &cmemAttrs);
+    }
+
 
     status = 0;
 
