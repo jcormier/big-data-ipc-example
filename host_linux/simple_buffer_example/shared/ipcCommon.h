@@ -91,15 +91,16 @@ typedef struct {
     } u;
 } App_Msg;
 
+// Cache size is 128B (0x80)
 typedef struct {
-    Int32               dspBuffPtr;
-    Int32               armBuffPtr;
-    Int32               bufferFilled[HIGH_SPEED_NUMBER_OF_BUFFERS];
+    Int32               dspBuffPtr; // 4B
+    Int32               armBuffPtr; // 4B @ 0x0004
+    Int32               bufferFilled[HIGH_SPEED_NUMBER_OF_BUFFERS]; // 64B @ 0x0008
 
-    FlagIOBuffer        flagIOBuffer;
+    FlagIOBuffer        flagIOBuffer; // 1036B @ 0x0048
 
-    Int32               buffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_FLAGS_PER_BUFFER];
-} Shared_Mem;
+    Int32               buffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_FLAGS_PER_BUFFER]; // 65,536B @ 0x0454
+} Shared_Mem; // Total size: 66,644B (0x1_0454)
 
 #define App_MsgHeapId           0
 #define App_HostMsgQueName      "HOST:MsgQ:01"
