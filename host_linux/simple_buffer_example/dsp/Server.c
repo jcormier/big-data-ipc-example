@@ -312,12 +312,12 @@ Int Server_exec()
 //              GateMP_leave (gateHandle, gateKey);
 
                 // send message back (on first buffer fill only)
-                // if (firstPass) {
-                //     queId = MessageQ_getReplyQueue(msg);
-                //     MessageQ_put(queId, (MessageQ_Msg)msg);
+                if (firstPass) {    
+                    queId = MessageQ_getReplyQueue(msg);
+                    MessageQ_put(queId, (MessageQ_Msg)msg);
 
-                //     firstPass = FALSE;
-                // }
+                    firstPass = FALSE;
+                }
 
                 // Delay a short while to simulate normal dsp calcs
 //              Task_sleep(1);                                          // delay in ms
@@ -330,10 +330,7 @@ Int Server_exec()
                     }
                 }
 
-            }
-
-            queId = MessageQ_getReplyQueue(msg);
-            MessageQ_put(queId, (MessageQ_Msg)msg);
+            }    
 
             break;
 
