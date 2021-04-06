@@ -141,7 +141,6 @@ Int Server_exec()
     Int                 retryLimit = 100;
     Int                 retVal;
     Int                 status;
-//  Int32               streamingBuffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_FLAGS_PER_BUFFER];
     Int32               *streamingBuffer;
 
     float               dlyVal = 0.0;
@@ -266,23 +265,11 @@ Int Server_exec()
                 if ( shmem->bufferFilled[i] == 0) {                     // make sure buffer is ready to be filled
 
                     // test loop to get enough sweeps' data to fill a buffer
-                    for (recPtr = 0; recPtr<HIGH_SPEED_NUMBER_OF_RECORDS; recPtr++) {
+                    for (recPtr = 0; recPtr < HIGH_SPEED_INTS_PER_BUFFER; recPtr++) {
 
                         // Normal loop processing ===============================================================
 
-                        for (j=0; j<HIGH_SPEED_NUMBER_OF_FLAGS; j++) {
-                            if (j==0) {
-                                streamingBuffer[recPtr*32+j] = dspCtr++;
-                            } else if (j==1) {
-                                streamingBuffer[recPtr*32+j] = 0xbad0dad;
-                            } else if (j==2) {
-                                streamingBuffer[recPtr*32+j] = k;
-                            } else if (j== (HIGH_SPEED_NUMBER_OF_FLAGS-1) ) {
-                                streamingBuffer[recPtr*32+j] = (int) (dlyVal*100.);
-                            } else {
-                                streamingBuffer[recPtr*32+j] = i * 0x1000000 + recPtr * 0x1000 + j;
-                            }
-                        }
+                        streamingBuffer[recPtr] = dspCtr;
 
                         // Do some calculations here to simulate normal DSP operation
                         for (dlyCtr = 0; dlyCtr<100000; dlyCtr++); {
@@ -292,6 +279,7 @@ Int Server_exec()
                         // =======================================================================================
 
                     }
+                    dspCtr++;
 
                     memcpy ((void *) (shmem->buffer[i]), (void *) streamingBuffer, STREAMING_BUFFER_SIZE);
 
@@ -330,7 +318,7 @@ Int Server_exec()
 
 
                 Log_print1(Diags_ENTRY | Diags_INFO, "Checking buffer %d for invalid records", k);
-                for (i=0; i<HIGH_SPEED_NUMBER_OF_RECORDS; i++) {
+                for (i=0; i<HIGH_SPEED_INTS_PER_BUFFER; i++) {
                     if (streamingBuffer[i*32+1] != 0xbad0dad ) {
                         Log_print1(Diags_ENTRY | Diags_INFO, "record %d is bad", i);
                     }

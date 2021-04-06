@@ -54,27 +54,13 @@ extern "C" {
 #define App_CMD_BIGDATA                0x00000002
 #define App_CMD_SHUTDOWN               0x02000000
 
-#define HIGH_SPEED_NUMBER_OF_RECORDS	32								// # of records / buffer
-#define HIGH_SPEED_NUMBER_OF_FLAGS		32								// # of flags / record (1 sweep)
-#define HIGH_SPEED_NUMBER_OF_BUFFERS    16                              // # of buffers avail in shared mem
-#define HIGH_SPEED_FLAGS_PER_BUFFER     HIGH_SPEED_NUMBER_OF_FLAGS * HIGH_SPEED_NUMBER_OF_RECORDS
-#define STREAMING_BUFFER_SIZE           HIGH_SPEED_FLAGS_PER_BUFFER *4
+#define HIGH_SPEED_NUMBER_OF_BUFFERS    16                                  // # of buffers avail in shared mem
+#define HIGH_SPEED_INTS_PER_BUFFER      (1024)                              // Size of each buffer in words
+#define STREAMING_BUFFER_SIZE           (HIGH_SPEED_INTS_PER_BUFFER * 4)   // Size of each buffer in bytes
 
-#define NUM_BUFFERS_TO_TEST             (HIGH_SPEED_NUMBER_OF_BUFFERS+1)
+#define HIGH_SPEED_BUFFER_PADDING       (32 - 2 - HIGH_SPEED_NUMBER_OF_BUFFERS) // Number of Ints needed to pad buffers to a 128B boundary
 
-#define FLAG_IO_MAX_FLAGS              256
-#define FLAG_IO_FIRST_ARM_FLAG        7500
-#define FLAG_IO_LAST_ARM_FLAG         9999
-
-
-typedef enum Command_t {READY=0, READ=1, WRITE=2, READ_BUFFER_READY=3} Command;
-
-typedef struct FlagIOBuffer_t {
-    Command    command; // an int
-    int        startFlag;
-    int        numberOfFlags;
-    int        flags[FLAG_IO_MAX_FLAGS];
-} FlagIOBuffer;
+#define NUM_BUFFERS_TO_TEST             (HIGH_SPEED_NUMBER_OF_BUFFERS*20)
 
 typedef struct {
     UInt64              base;
@@ -99,10 +85,10 @@ typedef struct {
     Int32               armBuffPtr; // 4B @ 0x0004
     Int32               bufferFilled[HIGH_SPEED_NUMBER_OF_BUFFERS]; // 64B @ 0x0008
 
-    FlagIOBuffer        flagIOBuffer; // 1036B @ 0x0048
+    Int32               padding_1[HIGH_SPEED_BUFFER_PADDING]; // 56B @ 0x0048
 
-    Int32               buffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_FLAGS_PER_BUFFER]; // 65,536B @ 0x0454
-} Shared_Mem; // Total size: 66,644B (0x1_0454)
+    Int32               buffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_INTS_PER_BUFFER]; // 65,536B @ 0x0080
+} Shared_Mem; // Total size: 65,664B (0x1_0000)
 
 #define App_MsgHeapId           0
 #define App_HostMsgQueName      "HOST:MsgQ:01"

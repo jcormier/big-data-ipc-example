@@ -64,7 +64,7 @@
 #define BIG_DATA_POOL_SIZE              0x1000000
 //#define HIGH_SPEED_STREAMING_BUFFERS        128
 
-//#define STREAMING_BUFFER_SIZE   HIGH_SPEED_FLAGS_PER_BUFFER * 4         // 4K
+//#define STREAMING_BUFFER_SIZE   HIGH_SPEED_INTS_PER_BUFFER * 4         // 4K
 // #define NEXT_GEN_STREAMING
 
 /* round up the value 'size' to the next 'align' boundary */
@@ -179,8 +179,7 @@ Int App_exec(Void)
     Int                     retVal;
 //  Int                     sbPtr = 0;
     Int                     status;
-    Int                     streamingBuffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_FLAGS_PER_BUFFER];
-//  Int                     streamingBuffer2[STREAMING_BUFFER_SIZE];
+    Int                     streamingBuffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_INTS_PER_BUFFER];
     Int                     diagBuffer[NUM_BUFFERS_TO_TEST][6];
 //  Int                     diagBuffCtr = 0;
     Int                     start, count;
@@ -395,27 +394,16 @@ Int App_exec(Void)
             //     if ( shmem->bufferFilled[i] == 0) {                     // make sure buffer is ready to be filled
 
             //         // test loop to get enough sweeps' data to fill a buffer
-            //         for (Int recPtr = 0; recPtr<HIGH_SPEED_NUMBER_OF_RECORDS; recPtr++) {
+            //         for (Int recPtr = 0; recPtr<HIGH_SPEED_INTS_PER_BUFFER; recPtr++) {
 
-            //             // Normal loop processing ===============================================================
+            //            // Normal loop processing ===============================================================
 
-            //             for (j=0; j<HIGH_SPEED_NUMBER_OF_FLAGS; j++) {
-            //                 if (j==0) {
-            //                     Buffer[recPtr*32+j] = dspCtr++;
-            //                 } else if (j==1) {
-            //                     Buffer[recPtr*32+j] = 0xbad0dad;
-            //                 } else if (j==2) {
-            //                     Buffer[recPtr*32+j] = k;
-            //                 } else if (j== (HIGH_SPEED_NUMBER_OF_FLAGS-1) ) {
-            //                     Buffer[recPtr*32+j] = 0; //(int) (dlyVal*100.);
-            //                 } else {
-            //                     Buffer[recPtr*32+j] = i * 0x1000000 + recPtr * 0x1000 + j;
-            //                 }
-            //             }
+            //            streamingBuffer[recPtr] = dspCtr;
 
-            //             // =======================================================================================
+            //            // =======================================================================================
 
             //         }
+            //          dspCtr++;
             //     }
 
 
@@ -546,13 +534,12 @@ Int App_exec(Void)
     printf ("# of wrong dsp Ks: %d\n", NumOfWrongDspKs);
     printf ("# of sweeps that a buffer wasn't ready from DSP: %d\nReceived buffer: \n", errorCtr);
 
-    printf (" buffer\t\trecord\t\tdspCtr\t\t    [3]\t\t BuffReady \n");
+    printf (" buffer\t\tindex\t\tvalue\t\t BuffReady\n");
 
     for (i=0; i<HIGH_SPEED_NUMBER_OF_BUFFERS; i++) {
-        for (j=0; j<HIGH_SPEED_NUMBER_OF_RECORDS; j++) {
+        for (j=0; j<HIGH_SPEED_INTS_PER_BUFFER; j++) {
 
-            printf (" %2.2d\t\t  %2.2d\t\t %2.2d \t\t%8.8x\t\t%8.8x \n", i, j, streamingBuffer[i][j*32],
-                                                                               streamingBuffer[i][j*32+3],
+            printf (" %2.2d\t\t  %2.2d\t\t%8.8x\t\t%8.8x \n", i, j, streamingBuffer[i][j],
                                                                                diagBuffer[i][0]);
         }
     }
