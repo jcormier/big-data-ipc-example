@@ -166,7 +166,7 @@ leave:
 Int App_exec(Void)
 {
     Int                     errorCtr = 0;
-    Int                     NumOfWrongDspKs = 0;
+    Int                     NumOfWrongDspCtrs = 0;
     Int                     i, j;
     Int                     msgID = 0;
     Int                     pool_id;
@@ -182,13 +182,10 @@ Int App_exec(Void)
 
     Shared_Mem              *shmem;
 
-//  UInt32         *bigDataLocalPtr;
-
     App_Msg *               msg;
     SharedRegion_Entry      *pSrEntry;
     void                    *sharedRegionAllocPtr=NULL;
     CMEM_AllocParams        cmemAttrs;
-//  HeapMem_Handle          sr1Heap;
     bigDataLocalDesc_t      bigDataLocalDesc;
     SharedRegion_Config     sharedRegionConfig;
     SharedRegion_Entry      srEntry;
@@ -254,54 +251,41 @@ Int App_exec(Void)
     regionId = regionId1;
 
 
-    /* fill process pipeline */
-    for (i = 1; i <= 3; i++) {
-        /* allocate message */
-        msg = (App_Msg *)MessageQ_alloc(Module.heapId, Module.msgSize);
+    /* Setup shared region on DSP */
+    msg = (App_Msg *)MessageQ_alloc(Module.heapId, Module.msgSize);
 
-        if (msg == NULL) {
-            status = -1;
-            goto leave;
-        }
-
-        /* set the return address in the message header */
-        MessageQ_setReplyQueue(Module.hostQue, (MessageQ_Msg)msg);
-
-        if ( i == 1) {
-            printf("App_exec: sending message %d (REGION_INIT)\n", i);
-
-            /* fill in message payload for Shared region init*/
-            msg->cmd = App_CMD_SHARED_REGION_INIT;
-            msg->id = i;
-            msg->regionId = regionId;
-            /* Passing the local shared memory address to the remote */
-            /* Actually this can be any allocated buffer for the used for the heap */
-            msg->u.sharedRegionInitCfg.base = CMEM_getPhys(pSrEntry->base);
-            printf("Shared memory phys Addr %llx\n", msg->u.sharedRegionInitCfg.base);
-            if (!msg->u.sharedRegionInitCfg.base) {
-                printf("CMEM_getPhys failed\n");
-            }
-            msg->u.sharedRegionInitCfg.size = (UInt64)(pSrEntry->len);
-        } else {
-            printf("App_exec: sending message %d (NOP)\n", i);
-            /* fill in message payload */
-            msg->cmd = App_CMD_NOP;
-            msg->id = i;
-        }
-
-        /* send message */
-        MessageQ_put(Module.slaveQue, (MessageQ_Msg)msg);
+    if (msg == NULL) {
+        status = -1;
+        goto leave;
     }
 
+    /* set the return address in the message header */
+    MessageQ_setReplyQueue(Module.hostQue, (MessageQ_Msg)msg);
 
-    msgID            = 4;
+    msgID = 1;
+    printf("App_exec: sending message %d (REGION_INIT)\n", msgID);
+
+    /* fill in message payload for Shared region init*/
+    msg->cmd = App_CMD_SHARED_REGION_INIT;
+    msg->id = msgID++;
+    msg->regionId = regionId;
+    /* Passing the local shared memory address to the remote */
+    /* Actually this can be any allocated buffer for the used for the heap */
+    msg->u.sharedRegionInitCfg.base = CMEM_getPhys(pSrEntry->base);
+    printf("Shared memory phys Addr %llx\n", msg->u.sharedRegionInitCfg.base);
+    if (!msg->u.sharedRegionInitCfg.base) {
+        printf("CMEM_getPhys failed\n");
+    }
+    msg->u.sharedRegionInitCfg.size = (UInt64)(pSrEntry->len);
+
+    /* send message */
+    MessageQ_put(Module.slaveQue, (MessageQ_Msg)msg);
+
+
+    // Retrieve & send 2 messages
+    //      read-1 SHARED_REGION_INIT / send-2 BIGDATA
+    //      read-3 BIGDATA            / streamingStarted=TRUE
     streamingStarted = FALSE;
-
-    // Retrieve & send 4 messages
-    //      read-1 SHARED_REGION_INIT / send-4 BIGDATA
-    //      read-2 NOP                / send-5 NOP
-    //      read-3 NOP                / send-6 NOP
-    //      read-4 BIGDATA            / send-7 SHUTDOWN
     while (streamingStarted == FALSE) {
 
         /* Now this section of code starts receiving messages
@@ -317,15 +301,17 @@ Int App_exec(Void)
         printf("App_exec (v1.0): message received %d\n", msg->id);
 
         if (msg->cmd == App_CMD_BIGDATA) {
+            // DSP has started streaming
             streamingStarted = TRUE;
         }
 
         /* free the message */
         MessageQ_free((MessageQ_Msg)msg);
 
-        printf("App_exec: Preparing message %d\n", i);
+        printf("App_exec: Preparing message %d\n", msgID);
 
         /* Receive messages: End =======================================> */
+
 
         /* Send messages: Start  <======================================= */
 
@@ -341,15 +327,14 @@ Int App_exec(Void)
         /* set the return address in the message header */
         MessageQ_setReplyQueue(Module.hostQue, (MessageQ_Msg)msg);
 
-        /* fill in message payload */
-        if (msgID == 4) {
+        /* Start circular buffer processing */
+        if (msgID == 2) {
             printf("App_exec: sending message %d (BIGDATA)\n", msgID);
 
             // Send Big data messages
             msg->cmd = App_CMD_BIGDATA;
             msg->id  = msgID++;
 
-            /* Allocate buffer from HeapMem */
             shmem = (Shared_Mem *) pSrEntry->base;
             if (!shmem) {
                 status = -1;
@@ -410,19 +395,6 @@ Int App_exec(Void)
 
             msg->regionId                      = regionId;
 
-        } else {
-            if (msgID == 7) {
-                printf("App_exec: sending message %d (SHUTDOWN)\n", msgID);
-
-                msg->cmd = App_CMD_SHUTDOWN;                            // Last message will tell the slave to shutdown
-                msg->id  = msgID++;
-
-            } else {
-                printf("App_exec: sending message %d (NOP)\n", msgID);
-
-                msg->cmd = App_CMD_NOP;                                    // Send dummy NOP messages before shutdown
-                msg->id  = msgID++;
-            }
         }
 
         /* send message */
@@ -433,7 +405,7 @@ Int App_exec(Void)
     }
 
     //===============================
-    // Process streaming data & flags (goes on forever)
+    // Process streaming data
     //===============================
     if (streamingStarted) {
 
@@ -442,7 +414,7 @@ Int App_exec(Void)
 
         // Next gen streaming data
         j = 0;
-        while (j<NUM_BUFFERS_TO_TEST) {
+        while (j < NUM_BUFFERS_TO_TEST) {
 
             Cache_inv(bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
 
@@ -455,10 +427,10 @@ Int App_exec(Void)
                          (void *) (shmem->buffer[shmem->armBuffPtr]),
                          STREAMING_BUFFER_SIZE );
 
-                Int dspK = streamingBuffer[shmem->armBuffPtr][0+2];
-                if (dspK != j) {
-                    printf("Error: Buffer %d had count %d\n", j, dspK);
-                    NumOfWrongDspKs++;
+                Int dspCtr = streamingBuffer[shmem->armBuffPtr][0];
+                if (dspCtr != j) {
+                    printf("Error: Buffer %d had count %d\n", j, dspCtr);
+                    NumOfWrongDspCtrs++;
                 }
 
                 shmem->bufferFilled[shmem->armBuffPtr] = 0;             // clear this buffer's full bit => ready to fill
@@ -477,24 +449,46 @@ Int App_exec(Void)
 
     }   // if streamingStarted
 
-    /* drain process pipeline */
-    for (i = 1; i <= 3; i++) {
+    //===============================
+    // Send shutdown
+    //===============================
 
-        /* wait for return message */
-        status = MessageQ_get(Module.hostQue, (MessageQ_Msg *)&msg,
-            MessageQ_FOREVER);
+    /* allocate message */
+    msg = (App_Msg *)MessageQ_alloc(Module.heapId, Module.msgSize);
 
-        if (status < 0) {
-            printf("MessageQ_get failed\n");
-            goto leave;
-        }
-        printf("App_exec: message received-3: %d\n", msg->id);
-
-        /* extract message payload */
-
-        /* free the message */
-        MessageQ_free((MessageQ_Msg)msg);
+    if (msg == NULL) {
+        status = -1;
+        printf("MessageQ_alloc failed\n");
+        goto leave;
     }
+
+    /* set the return address in the message header */
+    MessageQ_setReplyQueue(Module.hostQue, (MessageQ_Msg)msg);
+
+    printf("App_exec: sending message %d (SHUTDOWN)\n", msgID);
+
+    msg->cmd = App_CMD_SHUTDOWN;                            // Last message will tell the slave to shutdown
+    msg->id  = msgID++;
+
+
+    /* wait for shutdown message response */
+    status = MessageQ_get(Module.hostQue, (MessageQ_Msg *)&msg,
+        MessageQ_FOREVER);
+
+    if (status < 0) {
+        printf("MessageQ_get failed\n");
+        goto leave;
+    }
+    printf("App_exec: message received-3: %d\n", msg->id);
+
+    /* extract message payload */
+
+    /* free the message */
+    MessageQ_free((MessageQ_Msg)msg);
+
+    //===============================
+    // Shutdown message response received
+    //===============================
 
     fp = fopen("buffer_after_dsp.bin", "wb");
     if (fp != NULL)
@@ -510,7 +504,7 @@ Int App_exec(Void)
         fclose(fp);
     }
 
-    printf ("# of wrong dsp Ks: %d\n", NumOfWrongDspKs);
+    printf ("# of wrong dsp Ks: %d\n", NumOfWrongDspCtrs);
     printf ("# of sweeps that a buffer wasn't ready from DSP: %d\nReceived buffer: \n", errorCtr);
 
     printf (" buffer\t\tindex\t\tvalue\t\t BuffReady\n");
