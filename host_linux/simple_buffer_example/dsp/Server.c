@@ -55,7 +55,6 @@
 #include <ti/ipc/MultiProc.h>
 #include <ti/ipc/SharedRegion.h>
 #include <ti/ipc/HeapMemMP.h>
-#include <ti/ipc/GateMP.h>
 #include <ti/ipc/remoteproc/Resource.h>
 #include <ti/sysbios/hal/Cache.h>
 #include <xdc/runtime/IHeap.h>
@@ -137,16 +136,13 @@ Int Server_exec()
     Int                 dspCtr = 1;
     Int                 i, j, k;
     Int                 recPtr = 0;
-    Int                 retryCount;
-    Int                 retryLimit = 100;
     Int                 retVal;
     Int                 status;
     Int32               *streamingBuffer;
 
     float               dlyVal = 0.0;
-    volatile int        dlyCtr = 0;
+    int                 dlyCtr = 0;
 
-//  Uint32 *bigDataLocalPtr;
     Shared_Mem          *shmem;
 
     clock_t             startTime;
@@ -161,9 +157,6 @@ Int Server_exec()
     bigDataLocalDesc_t  bigDataLocalDesc;
     SharedRegion_Entry  srEntry;
     void                *sharedRegionAllocPtr = NULL;
-
-    GateMP_Handle       gateHandle;
-    IArg                gateKey;
 
 //    struct timespec {        ts;
 
@@ -224,22 +217,6 @@ Int Server_exec()
             break;
 
         case App_CMD_BIGDATA:        // <=============================================================
-
-#if 0
-            retryCount = retryLimit;
-            while (retryCount-- > 0) {
-                status = GateMP_open ("myGate", &gateHandle);
-                if (status >= 0) {
-                    break;
-                }
-                Task_sleep(1);
-            }
-            if (status < 0) {
-                goto leave;
-            }
-
-            gateKey = GateMP_enter (gateHandle);
-#endif
 
             firstPass = TRUE;
 
@@ -308,8 +285,6 @@ Int Server_exec()
                     Log_print1(Diags_ENTRY | Diags_INFO, "Buffer %d skipped due to full buffer", k);
                 }
 
-//              GateMP_leave (gateHandle, gateKey);
-
                 // send message back (on first buffer fill only)
                 if (firstPass) {
                     queId = MessageQ_getReplyQueue(msg);
@@ -335,8 +310,6 @@ Int Server_exec()
 
         case App_CMD_SHUTDOWN:        // <=============================================================
             running = FALSE;
-
-//          GateMP_close(&gateHandle);
 
             break;
 

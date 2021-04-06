@@ -52,7 +52,6 @@
 //#include "HeapMem.h"
 #include "SharedRegion.h"
 #include "MemoryDefs.h"
-#include <ti/ipc/GateMP.h>
 #include "Cache.h"
 
 /* local header files */
@@ -62,10 +61,6 @@
 /* Application specific defines */
 #define DEBUG                                   1
 #define BIG_DATA_POOL_SIZE              0x1000000
-//#define HIGH_SPEED_STREAMING_BUFFERS        128
-
-//#define STREAMING_BUFFER_SIZE   HIGH_SPEED_INTS_PER_BUFFER * 4         // 4K
-// #define NEXT_GEN_STREAMING
 
 /* round up the value 'size' to the next 'align' boundary */
 #define ROUNDUP(size, align) \
@@ -172,25 +167,17 @@ Int App_exec(Void)
 {
     Int                     errorCtr = 0;
     Int                     NumOfWrongDspKs = 0;
-//  Int                     expectedDspCtr = 1;
-    Int                     i,j, k;
+    Int                     i, j;
     Int                     msgID = 0;
     Int                     pool_id;
-    Int                     retVal;
-//  Int                     sbPtr = 0;
     Int                     status;
     Int                     streamingBuffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_INTS_PER_BUFFER];
     Int                     diagBuffer[NUM_BUFFERS_TO_TEST][6];
-//  Int                     diagBuffCtr = 0;
-    Int                     start, count;
-    Int                     timer;
 
-//  UInt32                  errorCount=0;
 
     UInt16                  regionId;
     UInt16                  regionId1=1;
 
-    Bool                    getFlags         = TRUE;
     Bool                    streamingStarted = FALSE;
 
     Shared_Mem              *shmem;
@@ -205,14 +192,6 @@ Int App_exec(Void)
     bigDataLocalDesc_t      bigDataLocalDesc;
     SharedRegion_Config     sharedRegionConfig;
     SharedRegion_Entry      srEntry;
-//  HeapMem_Config          HeapMemConfig;
-//  HeapMem_Params          heapMem_params;
-    Memory_Stats            stats;
-//  HeapMem_ExtendedStats   extStats;
-
-    GateMP_Params           gparams;
-    GateMP_Handle           gateHandle;
-    IArg                    gateKey;
 
     FILE *fp = NULL;
 
