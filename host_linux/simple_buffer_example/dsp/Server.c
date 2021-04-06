@@ -242,7 +242,15 @@ Int Server_exec()
             Log_print1(Diags_ENTRY | Diags_INFO, "msg->cmd=App_CMD_BIGDATA,msg->ptr=0x%x",
                 (IArg)msg->u.bigDataSharedDesc.sharedPtr);
 
-// >>>>     while (shmem->dspBuffPtr >= 0) {
+            // Translate to local descriptor
+            retVal = bigDataXlatetoLocalAndSync(regionId1, &msg->u.bigDataSharedDesc, &bigDataLocalDesc);
+            if (retVal) {
+                status = -1;
+                goto leave;
+            }
+            shmem = (Shared_Mem *) bigDataLocalDesc.localPtr;
+            Log_print1(Diags_ENTRY | Diags_INFO, "shmem=0x%x",
+                        (IArg)shmem);
 
             for (k=0; k<NUM_BUFFERS_TO_TEST; k++) {
 
@@ -252,10 +260,6 @@ Int Server_exec()
                     status = -1;
                     goto leave;
                 }
-
-                shmem = (Shared_Mem *) bigDataLocalDesc.localPtr;
-                Log_print1(Diags_ENTRY | Diags_INFO, "shmem=0x%x",
-                           (IArg)shmem);
 
                 i = shmem->dspBuffPtr;
 
