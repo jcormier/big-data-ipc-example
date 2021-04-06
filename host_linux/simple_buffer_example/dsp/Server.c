@@ -175,7 +175,12 @@ Int Server_exec()
 //    startTime = Clock_getTicks();
 //    startTime = -1;
 
-    streamingBuffer = (Int32 *) malloc(HIGH_SPEED_FLAGS_PER_BUFFER*4);
+    streamingBuffer = (Int32 *) malloc(HIGH_SPEED_INTS_PER_BUFFER*4);
+    if (!streamingBuffer) {
+        Log_print0(Diags_ERROR, "Failed to allocate streamingBuffer");
+        status = -1;
+        goto leave;
+    }
 
 
     while (running) {
