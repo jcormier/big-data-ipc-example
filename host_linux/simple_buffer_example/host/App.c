@@ -198,7 +198,8 @@ Int App_exec(Void)
 
     FILE *fp = NULL;
     struct timespec t0, t1;
-    unsigned time_us;
+    unsigned total_time_us;
+    struct timespec times[NUM_BUFFERS_TO_TEST];
 
     printf("--> App_exec-4:\n");
 
@@ -448,7 +449,7 @@ Int App_exec(Void)
                 Cache_wb (bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
 
                 j++;                                                // increment buffer pointer
-
+                clock_gettime(CLOCK_MONOTONIC, &times[j]);
             } else {
                 waitCtr++;
             }
@@ -456,7 +457,7 @@ Int App_exec(Void)
             usleep (1000);                                          // delay in micro-seconds (10^-6)
         }    // while
         clock_gettime(CLOCK_MONOTONIC, &t1);
-        time_us = us_diff(t0, t1);
+        total_time_us = us_diff(t0, t1);
 
     }   // if streamingStarted
 
@@ -530,12 +531,20 @@ Int App_exec(Void)
         }
     }
 
-    printf("Number of buffers: %u\n", HIGH_SPEED_NUMBER_OF_BUFFERS);
+    printf("Number of buffers: %u\n", NUM_BUFFERS_TO_TEST);
     printf("Buffer size: %uB\n", STREAMING_BUFFER_SIZE);
-    unsigned total = STREAMING_BUFFER_SIZE * HIGH_SPEED_NUMBER_OF_BUFFERS;
+    unsigned total = STREAMING_BUFFER_SIZE * NUM_BUFFERS_TO_TEST;
     printf("Total size: %uB\n", total);
-    printf("Transfer Time: %u uS\n", time_us);
-    printf("Average throughput: %0.f B/s\n", (double)total * 1E6 / time_us );
+    printf("Transfer Time: %u uS\n", total_time_us);
+    printf("Average throughput: %0.f B/s\n", (double)total * 1E6 / total_time_us );
+
+    printf("Per buffer tests: ");
+    printf("%d ", us_diff(t0, times[0]));
+    for (i = 1; i < NUM_BUFFERS_TO_TEST; i++) {
+        printf("%d ", us_diff(times[i-1], times[i]));
+    }
+    printf("\n");
+
 
 leave:
     if (sharedRegionAllocPtr) {
