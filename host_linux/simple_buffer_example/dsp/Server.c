@@ -253,10 +253,10 @@ Int Server_exec()
 
                         streamingBuffer[recPtr] = dspCtr;
 
-                        // Do some calculations here to simulate normal DSP operation
-                        for (dlyCtr = 0; dlyCtr<100000; dlyCtr++); {
-                            dlyVal = (float) (dlyCtr % 0x1fffffff) * 0.9;
-                        }
+                        // // Do some calculations here to simulate normal DSP operation
+                        // for (dlyCtr = 0; dlyCtr<100000; dlyCtr++); {
+                        //     dlyVal = (float) (dlyCtr % 0x1fffffff) * 0.9;
+                        // }
 
                         // =======================================================================================
 
