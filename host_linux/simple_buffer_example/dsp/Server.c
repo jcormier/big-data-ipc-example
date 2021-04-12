@@ -273,7 +273,7 @@ Int Server_exec()
                     }
 
                     shmem->bufferFilled[shmem->dspBuffPtr] = 1;             // set buffer's bit to indicate it's full
-                    shmem->dspBuffPtr    = (shmem->dspBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
+                    shmem->dspBuffPtr = (shmem->dspBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
 
                     // Translate to Shared Descriptor and Sync
                     retVal = bigDataXlatetoGlobalAndSync(regionId1, &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
@@ -282,7 +282,9 @@ Int Server_exec()
                         goto leave;
                     }
                 } else {
-                    Log_print1(Diags_ENTRY | Diags_INFO, "Buffer %d skipped due to full buffer", k);
+                    // Log_print1(Diags_ENTRY | Diags_INFO, "Buffer %d skipped due to full buffer", k);
+                    // Repeat last k until there is more room
+                    k--;
                 }
 
                 // send message back (on first buffer fill only)
