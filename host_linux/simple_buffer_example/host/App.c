@@ -423,6 +423,7 @@ Int App_exec(Void)
 
         // Next gen streaming data
         j = 0;
+        unsigned expected_count = 0;
         clock_gettime(CLOCK_MONOTONIC, &t0);
         while (j < NUM_BUFFERS_TO_TEST) {
 
@@ -438,9 +439,12 @@ Int App_exec(Void)
                          STREAMING_BUFFER_SIZE );
 
                 Int dspCtr = streamingBuffer[shmem->armBuffPtr][0];
-                if (dspCtr != j) {
-                    printf("Error: Buffer %d had count %d\n", j, dspCtr);
+                if (dspCtr != expected_count) {
+                    printf("Error: Buffer %d had count %d, expected %d\n", j, dspCtr, expected_count);
                     NumOfWrongDspCtrs++;
+
+                    // Skip to received count so we catch additional missed buffers
+                    expected_count = dspCtr;
                 }
 
                 shmem->bufferFilled[shmem->armBuffPtr] = 0;             // clear this buffer's full bit => ready to fill
@@ -449,6 +453,7 @@ Int App_exec(Void)
                 Cache_wb (bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
 
                 j++;                                                // increment buffer pointer
+                expected_count++;
                 clock_gettime(CLOCK_MONOTONIC, &times[j]);
             } else {
                 waitCtr++;
@@ -516,9 +521,6 @@ Int App_exec(Void)
         fclose(fp);
     }
 
-    printf ("# of wrong dsp counts: %d\n", NumOfWrongDspCtrs);
-    printf ("# of sweeps that a buffer wasn't ready from DSP: %d\nReceived buffer: \n", waitCtr);
-
     printf (" buffer\t\tindex\t\tvalue\t\t BuffReady\n");
 
     for (i=0; i<HIGH_SPEED_NUMBER_OF_BUFFERS; i++) {
@@ -544,6 +546,9 @@ Int App_exec(Void)
         printf("%d ", us_diff(times[i-1], times[i]));
     }
     printf("\n");
+
+    printf ("# of wrong dsp counts: %d\n", NumOfWrongDspCtrs);
+    printf ("# of sweeps that a buffer wasn't ready from DSP: %d\nReceived buffer: \n", waitCtr);
 
 
 leave:
