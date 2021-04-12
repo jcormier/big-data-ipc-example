@@ -513,7 +513,9 @@ Int App_exec(Void)
         for (j=0; j<HIGH_SPEED_INTS_PER_BUFFER; j++) {
 
             printf (" %2.2d\t\t  %2.2d\t\t%8.8x\t\t%8.8x \n", i, j, streamingBuffer[i][j],
-                                                                               diagBuffer[i][0]);
+                                                                        diagBuffer[i][0]);
+            // Only print first int for each buffer
+            break;
         }
     }
 
