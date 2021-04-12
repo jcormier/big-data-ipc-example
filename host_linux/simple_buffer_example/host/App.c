@@ -165,7 +165,7 @@ leave:
  */
 Int App_exec(Void)
 {
-    Int                     errorCtr = 0;
+    Int                     waitCtr = 0;
     Int                     NumOfWrongDspCtrs = 0;
     Int                     i, j;
     Int                     msgID = 0;
@@ -409,7 +409,7 @@ Int App_exec(Void)
     //===============================
     if (streamingStarted) {
 
-        errorCtr = 0;
+        waitCtr = 0;
         printf ("1...\n");
 
         // Next gen streaming data
@@ -441,7 +441,7 @@ Int App_exec(Void)
                 j++;                                                // increment buffer pointer
 
             } else {
-                errorCtr++;
+                waitCtr++;
             }
 
             usleep (1000);                                          // delay in micro-seconds (10^-6)
@@ -504,8 +504,8 @@ Int App_exec(Void)
         fclose(fp);
     }
 
-    printf ("# of wrong dsp Ks: %d\n", NumOfWrongDspCtrs);
-    printf ("# of sweeps that a buffer wasn't ready from DSP: %d\nReceived buffer: \n", errorCtr);
+    printf ("# of wrong dsp counts: %d\n", NumOfWrongDspCtrs);
+    printf ("# of sweeps that a buffer wasn't ready from DSP: %d\nReceived buffer: \n", waitCtr);
 
     printf (" buffer\t\tindex\t\tvalue\t\t BuffReady\n");
 
