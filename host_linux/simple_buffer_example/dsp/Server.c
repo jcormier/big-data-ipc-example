@@ -299,12 +299,12 @@ Int Server_exec()
 //              Task_sleep(1);                                          // delay in ms
 
 
-                Log_print1(Diags_ENTRY | Diags_INFO, "Checking buffer %d for invalid records", k);
-                for (i=0; i<HIGH_SPEED_INTS_PER_BUFFER; i++) {
-                    if (streamingBuffer[i*32+1] != 0xbad0dad ) {
-                        Log_print1(Diags_ENTRY | Diags_INFO, "record %d is bad", i);
-                    }
-                }
+                // Log_print1(Diags_ENTRY | Diags_INFO, "Checking buffer %d for invalid records", k);
+                // for (i=0; i<HIGH_SPEED_INTS_PER_BUFFER; i++) {
+                    // if (streamingBuffer[i*32+1] != 0xbad0dad ) {
+                    //     Log_print1(Diags_ENTRY | Diags_INFO, "record %d is bad", i);
+                    // }
+                // }
 
             }
 
