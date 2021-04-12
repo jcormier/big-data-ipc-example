@@ -133,7 +133,7 @@ leave:
  */
 Int Server_exec()
 {
-    Int                 dspCtr = 1;
+    Int                 dspCtr = 0;
     Int                 i, j, k;
     Int                 recPtr = 0;
     Int                 retVal;
