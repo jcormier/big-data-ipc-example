@@ -42,6 +42,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
+#include <limits.h>
+
 
 #include <ti/cmem.h>
 
@@ -76,6 +79,9 @@ typedef struct {
 
 /* private data */
 static App_Module Module;
+
+static unsigned us_diff (struct timespec t1, struct timespec t2)
+{ return (t2.tv_sec - t1.tv_sec) * 1e6 + (t2.tv_nsec - t1.tv_nsec) / 1e3; }
 
 /*
  *  ======== App_create ========
@@ -191,6 +197,8 @@ Int App_exec(Void)
     SharedRegion_Entry      srEntry;
 
     FILE *fp = NULL;
+    struct timespec t0, t1;
+    unsigned time_us;
 
     printf("--> App_exec-4:\n");
 
@@ -414,6 +422,7 @@ Int App_exec(Void)
 
         // Next gen streaming data
         j = 0;
+        clock_gettime(CLOCK_MONOTONIC, &t0);
         while (j < NUM_BUFFERS_TO_TEST) {
 
             Cache_inv(bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
@@ -446,6 +455,8 @@ Int App_exec(Void)
 
             usleep (1000);                                          // delay in micro-seconds (10^-6)
         }    // while
+        clock_gettime(CLOCK_MONOTONIC, &t1);
+        time_us = us_diff(t0, t1);
 
     }   // if streamingStarted
 
@@ -518,6 +529,13 @@ Int App_exec(Void)
             break;
         }
     }
+
+    printf("Number of buffers: %u\n", HIGH_SPEED_NUMBER_OF_BUFFERS);
+    printf("Buffer size: %uB\n", STREAMING_BUFFER_SIZE);
+    unsigned total = STREAMING_BUFFER_SIZE * HIGH_SPEED_NUMBER_OF_BUFFERS;
+    printf("Total size: %uB\n", total);
+    printf("Transfer Time: %u uS\n", time_us);
+    printf("Average throughput: %0.f B/s\n", (double)total * 1E6 / time_us );
 
 leave:
     if (sharedRegionAllocPtr) {
