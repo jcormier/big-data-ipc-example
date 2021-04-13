@@ -245,7 +245,7 @@ Int Server_exec()
 
                 localDspBuffPtr = shmem->dspBuffPtr;
 
-                if ( shmem->bufferFilled[localDspBuffPtr] == 0) {                     // make sure buffer is ready to be filled
+                if ( shmem->bufferFilled[localDspBuffPtr][0] == 0) {                     // make sure buffer is ready to be filled
                     Log_print2(Diags_ENTRY | Diags_INFO, "localDspBuffPtr: %d  dspCtr: %d", localDspBuffPtr, dspCtr);
 
                     // test loop to get enough sweeps' data to fill a buffer
@@ -270,11 +270,11 @@ Int Server_exec()
                     // WB data
                     Cache_wb(&(shmem->buffer[localDspBuffPtr]), STREAMING_BUFFER_SIZE, Cache_Type_ALL, TRUE);
 
-                    shmem->bufferFilled[localDspBuffPtr] = 1;             // set buffer's bit to indicate it's full
+                    shmem->bufferFilled[localDspBuffPtr][0] = 1;             // set buffer's bit to indicate it's full
                     shmem->dspBuffPtr = (localDspBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
 
                     // WB buffer pointers
-                    Cache_wb(&(shmem->bufferFilled[localDspBuffPtr]), sizeof(shmem->bufferFilled[localDspBuffPtr]), Cache_Type_ALL, TRUE);
+                    Cache_wb(&(shmem->bufferFilled[localDspBuffPtr][0]), sizeof(shmem->bufferFilled[localDspBuffPtr][0]), Cache_Type_ALL, TRUE);
                     Cache_wb(&(shmem->dspBuffPtr), sizeof(shmem->dspBuffPtr), Cache_Type_ALL, TRUE);
                 } else {
                     // Log_print1(Diags_ENTRY | Diags_INFO, "Buffer %d skipped due to full buffer", k);

@@ -58,8 +58,6 @@ extern "C" {
 #define HIGH_SPEED_INTS_PER_BUFFER      (1024)                              // Size of each buffer in words
 #define STREAMING_BUFFER_SIZE           (HIGH_SPEED_INTS_PER_BUFFER * 4)   // Size of each buffer in bytes
 
-#define HIGH_SPEED_BUFFER_PADDING       (32 - 2 - HIGH_SPEED_NUMBER_OF_BUFFERS) // Number of Ints needed to pad buffers to a 128B boundary
-
 #define NUM_BUFFERS_TO_TEST             (HIGH_SPEED_NUMBER_OF_BUFFERS*20)
 
 typedef struct {
@@ -79,16 +77,19 @@ typedef struct {
     } u;
 } App_Msg;
 
-// Cache size is 128B (0x80)
+// Cache size is 128B (0x80), ensure each part is on a different cache line so ARM/DSP don't overwrite each other
 typedef struct {
     Int32               dspBuffPtr; // 4B
-    Int32               armBuffPtr; // 4B @ 0x0004
-    Int32               bufferFilled[HIGH_SPEED_NUMBER_OF_BUFFERS]; // 64B @ 0x0008
+    char                padding_dsp[124];
 
-    Int32               padding_1[HIGH_SPEED_BUFFER_PADDING]; // 56B @ 0x0048
+    Int32               armBuffPtr; // 4B @ 0x0080
+    char                padding_arm[124];
 
-    Int32               buffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_INTS_PER_BUFFER]; // 65,536B @ 0x0080
-} Shared_Mem; // Total size: 65,664B (0x1_0000)
+    /* Each bufferFilled is 128B aligned to line up with cache size, since both ARM and DSP write to these addresses */
+    UInt8               bufferFilled[HIGH_SPEED_NUMBER_OF_BUFFERS][128]; // 2048B @ 0x0100
+
+    Int32               buffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_INTS_PER_BUFFER]; // 65,536B @ 0x0900
+} Shared_Mem; // Total size: 67,840 (0x1_0900)
 
 #define App_MsgHeapId           0
 #define App_HostMsgQueName      "HOST:MsgQ:01"

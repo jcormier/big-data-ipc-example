@@ -364,7 +364,7 @@ Int App_exec(Void)
             //     // Int *Buffer = shmem->buffer[i];
             //     Int Buffer[STREAMING_BUFFER_SIZE];
 
-            //     if ( shmem->bufferFilled[i] == 0) {                     // make sure buffer is ready to be filled
+            //     if ( shmem->bufferFilled[i][0] == 0) {                     // make sure buffer is ready to be filled
 
             //         // test loop to get enough sweeps' data to fill a buffer
             //         for (Int recPtr = 0; recPtr<HIGH_SPEED_INTS_PER_BUFFER; recPtr++) {
@@ -382,7 +382,7 @@ Int App_exec(Void)
 
             //     memcpy ((void *) (shmem->buffer[i]), (void *) Buffer, STREAMING_BUFFER_SIZE);
 
-            //     shmem->bufferFilled[shmem->dspBuffPtr] = 1;             // set buffer's bit to indicate it's full
+            //     shmem->bufferFilled[shmem->dspBuffPtr][0] = 1;             // set buffer's bit to indicate it's full
             //     shmem->dspBuffPtr    = (shmem->dspBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
 
             // }
@@ -430,10 +430,10 @@ Int App_exec(Void)
             Cache_inv(bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
 
             Int32 localArmBuffPtr = shmem->armBuffPtr;
-            diagBuffer[j][0] = shmem->bufferFilled[localArmBuffPtr];
+            diagBuffer[j][0] = shmem->bufferFilled[localArmBuffPtr][0];
 
 
-            if ( shmem->bufferFilled[localArmBuffPtr] == 1 ) {        // if the DSP has filled this buffer
+            if ( shmem->bufferFilled[localArmBuffPtr][0] == 1 ) {        // if the DSP has filled this buffer
                 printf("Buffer %d armBuffPtr %d\n", j, localArmBuffPtr);
                 // Retrieve the next buffer
                 memcpy ( (void *) (streamingBuffer[localArmBuffPtr]),
@@ -449,10 +449,10 @@ Int App_exec(Void)
                     expected_count = dspCtr;
                 }
 
-                shmem->bufferFilled[localArmBuffPtr] = 0;             // clear this buffer's full bit => ready to fill
+                shmem->bufferFilled[localArmBuffPtr][0] = 0;             // clear this buffer's full bit => ready to fill
                 shmem->armBuffPtr    = (localArmBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
 
-                Cache_wb (&(shmem->bufferFilled[localArmBuffPtr]), sizeof(shmem->bufferFilled[localArmBuffPtr]), Cache_Type_ALL, TRUE);
+                Cache_wb (&(shmem->bufferFilled[localArmBuffPtr][0]), sizeof(shmem->bufferFilled[localArmBuffPtr][0]), Cache_Type_ALL, TRUE);
                 Cache_wb (&(shmem->armBuffPtr), sizeof(shmem->armBuffPtr), Cache_Type_ALL, TRUE);
                 // Cache_wb (bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
 
