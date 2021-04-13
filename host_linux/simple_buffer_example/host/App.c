@@ -429,16 +429,18 @@ Int App_exec(Void)
 
             Cache_inv(bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
 
-            diagBuffer[j][0] = shmem->bufferFilled[shmem->armBuffPtr];
+            Int32 localArmBuffPtr = shmem->armBuffPtr;
+            diagBuffer[j][0] = shmem->bufferFilled[localArmBuffPtr];
 
 
-            if ( shmem->bufferFilled[shmem->armBuffPtr] == 1 ) {        // if the DSP has filled this buffer
+            if ( shmem->bufferFilled[localArmBuffPtr] == 1 ) {        // if the DSP has filled this buffer
+                printf("Buffer %d armBuffPtr %d\n", j, localArmBuffPtr);
                 // Retrieve the next buffer
-                memcpy ( (void *) (streamingBuffer[shmem->armBuffPtr]),
-                         (void *) (shmem->buffer[shmem->armBuffPtr]),
+                memcpy ( (void *) (streamingBuffer[localArmBuffPtr]),
+                         (void *) (shmem->buffer[localArmBuffPtr]),
                          STREAMING_BUFFER_SIZE );
 
-                Int dspCtr = streamingBuffer[shmem->armBuffPtr][0];
+                Int dspCtr = streamingBuffer[localArmBuffPtr][0];
                 if (dspCtr != expected_count) {
                     printf("Error: Buffer %d had count %d, expected %d\n", j, dspCtr, expected_count);
                     NumOfWrongDspCtrs++;
@@ -447,8 +449,8 @@ Int App_exec(Void)
                     expected_count = dspCtr;
                 }
 
-                shmem->bufferFilled[shmem->armBuffPtr] = 0;             // clear this buffer's full bit => ready to fill
-                shmem->armBuffPtr    = (shmem->armBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
+                shmem->bufferFilled[localArmBuffPtr] = 0;             // clear this buffer's full bit => ready to fill
+                shmem->armBuffPtr    = (localArmBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
 
                 Cache_wb (bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
 
