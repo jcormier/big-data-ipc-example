@@ -135,6 +135,7 @@ Int Server_exec()
 {
     Int                 dspCtr = 0;
     Int                 i, j, k;
+    Int                 localDspBuffPtr;
     Int                 recPtr = 0;
     Int                 retVal;
     Int                 status;
@@ -242,9 +243,10 @@ Int Server_exec()
                     goto leave;
                 }
 
-                i = shmem->dspBuffPtr;
+                localDspBuffPtr = shmem->dspBuffPtr;
 
-                if ( shmem->bufferFilled[i] == 0) {                     // make sure buffer is ready to be filled
+                if ( shmem->bufferFilled[localDspBuffPtr] == 0) {                     // make sure buffer is ready to be filled
+                    Log_print2(Diags_ENTRY | Diags_INFO, "localDspBuffPtr: %d  dspCtr: %d", localDspBuffPtr, dspCtr);
 
                     // test loop to get enough sweeps' data to fill a buffer
                     for (recPtr = 0; recPtr < HIGH_SPEED_INTS_PER_BUFFER; recPtr++) {
@@ -263,7 +265,7 @@ Int Server_exec()
                     }
                     dspCtr++;
 
-                    memcpy ((void *) (shmem->buffer[i]), (void *) streamingBuffer, STREAMING_BUFFER_SIZE);
+                    memcpy ((void *) (shmem->buffer[localDspBuffPtr]), (void *) streamingBuffer, STREAMING_BUFFER_SIZE);
 
                     // Translate to Shared Descriptor and Sync
                     retVal = bigDataXlatetoGlobalAndSync(regionId1, &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
@@ -272,8 +274,8 @@ Int Server_exec()
                         goto leave;
                     }
 
-                    shmem->bufferFilled[i] = 1;             // set buffer's bit to indicate it's full
-                    shmem->dspBuffPtr = (i+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
+                    shmem->bufferFilled[localDspBuffPtr] = 1;             // set buffer's bit to indicate it's full
+                    shmem->dspBuffPtr = (localDspBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
 
                     // Translate to Shared Descriptor and Sync
                     retVal = bigDataXlatetoGlobalAndSync(regionId1, &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
