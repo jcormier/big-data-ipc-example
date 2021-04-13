@@ -272,8 +272,8 @@ Int Server_exec()
                         goto leave;
                     }
 
-                    shmem->bufferFilled[shmem->dspBuffPtr] = 1;             // set buffer's bit to indicate it's full
-                    shmem->dspBuffPtr = (shmem->dspBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
+                    shmem->bufferFilled[i] = 1;             // set buffer's bit to indicate it's full
+                    shmem->dspBuffPtr = (i+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
 
                     // Translate to Shared Descriptor and Sync
                     retVal = bigDataXlatetoGlobalAndSync(regionId1, &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
