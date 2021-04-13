@@ -267,22 +267,15 @@ Int Server_exec()
 
                     memcpy ((void *) (shmem->buffer[localDspBuffPtr]), (void *) streamingBuffer, STREAMING_BUFFER_SIZE);
 
-                    // Translate to Shared Descriptor and Sync
-                    retVal = bigDataXlatetoGlobalAndSync(regionId1, &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
-                    if (retVal) {
-                        status = -1;
-                        goto leave;
-                    }
+                    // WB data
+                    Cache_wb(&(shmem->buffer[localDspBuffPtr]), STREAMING_BUFFER_SIZE, Cache_Type_ALL, TRUE);
 
                     shmem->bufferFilled[localDspBuffPtr] = 1;             // set buffer's bit to indicate it's full
                     shmem->dspBuffPtr = (localDspBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
 
-                    // Translate to Shared Descriptor and Sync
-                    retVal = bigDataXlatetoGlobalAndSync(regionId1, &bigDataLocalDesc, &msg->u.bigDataSharedDesc);
-                    if (retVal) {
-                        status = -1;
-                        goto leave;
-                    }
+                    // WB buffer pointers
+                    Cache_wb(&(shmem->bufferFilled[localDspBuffPtr]), sizeof(shmem->bufferFilled[localDspBuffPtr]), Cache_Type_ALL, TRUE);
+                    Cache_wb(&(shmem->dspBuffPtr), sizeof(shmem->dspBuffPtr), Cache_Type_ALL, TRUE);
                 } else {
                     // Log_print1(Diags_ENTRY | Diags_INFO, "Buffer %d skipped due to full buffer", k);
                     // Repeat last k until there is more room

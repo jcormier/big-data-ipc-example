@@ -452,7 +452,9 @@ Int App_exec(Void)
                 shmem->bufferFilled[localArmBuffPtr] = 0;             // clear this buffer's full bit => ready to fill
                 shmem->armBuffPtr    = (localArmBuffPtr+1) % HIGH_SPEED_NUMBER_OF_BUFFERS;
 
-                Cache_wb (bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
+                Cache_wb (&(shmem->bufferFilled[localArmBuffPtr]), sizeof(shmem->bufferFilled[localArmBuffPtr]), Cache_Type_ALL, TRUE);
+                Cache_wb (&(shmem->armBuffPtr), sizeof(shmem->armBuffPtr), Cache_Type_ALL, TRUE);
+                // Cache_wb (bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
 
                 j++;                                                // increment buffer pointer
                 expected_count++;
