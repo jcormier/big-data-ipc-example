@@ -434,7 +434,7 @@ Int App_exec(Void)
 
 
             if ( shmem->bufferFilled[localArmBuffPtr][0] == 1 ) {        // if the DSP has filled this buffer
-                printf("Buffer %d armBuffPtr %d\n", j, localArmBuffPtr);
+                // printf("Buffer %d armBuffPtr %d\n", j, localArmBuffPtr);
                 // Retrieve the next buffer
                 memcpy ( (void *) (streamingBuffer[localArmBuffPtr]),
                          (void *) (shmem->buffer[localArmBuffPtr]),
