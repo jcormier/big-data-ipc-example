@@ -63,7 +63,7 @@
 
 /* Application specific defines */
 #define DEBUG                                   1
-#define BIG_DATA_POOL_SIZE              0x1000000
+#define BIG_DATA_POOL_SIZE              (100 * 1024 * 1024)
 
 /* round up the value 'size' to the next 'align' boundary */
 #define ROUNDUP(size, align) \
