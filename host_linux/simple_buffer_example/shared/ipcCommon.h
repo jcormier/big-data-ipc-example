@@ -55,7 +55,7 @@ extern "C" {
 #define App_CMD_SHUTDOWN               0x02000000
 
 #define HIGH_SPEED_NUMBER_OF_BUFFERS    (1000)                             // # of buffers avail in shared mem
-#define HIGH_SPEED_INTS_PER_BUFFER      (1024)                             // Size of each buffer in words
+#define HIGH_SPEED_INTS_PER_BUFFER      (32)                               // Size of each buffer in words
 #define STREAMING_BUFFER_SIZE           (HIGH_SPEED_INTS_PER_BUFFER * 4)   // Size of each buffer in bytes
 
 #define NUM_BUFFERS_TO_TEST             (HIGH_SPEED_NUMBER_OF_BUFFERS*1)
@@ -85,7 +85,7 @@ typedef struct {
     Int32               armBuffPtr; // 4B @ 0x0080
     char                padding_arm[124];
 
-    /* Each bufferFilled is 128B aligned to line up with cache size, since both ARM and DSP write to these addresses */
+    /* Each bufferFilled is 128B aligned with cache size, since both ARM and DSP write to these addresses */
     UInt8               bufferFilled[HIGH_SPEED_NUMBER_OF_BUFFERS][128]; // 2048B @ 0x0100
 
     Int32               buffer[HIGH_SPEED_NUMBER_OF_BUFFERS][HIGH_SPEED_INTS_PER_BUFFER]; // 65,536B @ 0x0900
