@@ -463,7 +463,6 @@ Int App_exec(Void)
                 waitCtr++;
             }
 
-            usleep (1000);                                          // delay in micro-seconds (10^-6)
         }    // while
         clock_gettime(CLOCK_MONOTONIC, &t1);
         total_time_us = us_diff(t0, t1);
