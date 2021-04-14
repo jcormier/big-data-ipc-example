@@ -427,14 +427,15 @@ Int App_exec(Void)
         clock_gettime(CLOCK_MONOTONIC, &t0);
         while (j < NUM_BUFFERS_TO_TEST) {
 
-            Cache_inv(bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
-
+            Cache_inv(&shmem->armBuffPtr, sizeof(shmem->armBuffPtr), Cache_Type_ALL, TRUE);
             Int32 localArmBuffPtr = shmem->armBuffPtr;
+            Cache_inv(&shmem->bufferFilled[localArmBuffPtr], sizeof(shmem->bufferFilled[localArmBuffPtr]), Cache_Type_ALL, TRUE);
             diagBuffer[j][0] = shmem->bufferFilled[localArmBuffPtr][0];
 
 
             if ( shmem->bufferFilled[localArmBuffPtr][0] == 1 ) {        // if the DSP has filled this buffer
                 // printf("Buffer %d armBuffPtr %d\n", j, localArmBuffPtr);
+                Cache_inv(&shmem->buffer[localArmBuffPtr], sizeof(shmem->buffer[localArmBuffPtr]), Cache_Type_ALL, TRUE);
                 // Retrieve the next buffer
                 memcpy ( (void *) (streamingBuffer[localArmBuffPtr]),
                          (void *) (shmem->buffer[localArmBuffPtr]),

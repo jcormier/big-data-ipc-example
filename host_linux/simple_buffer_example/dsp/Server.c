@@ -236,14 +236,11 @@ Int Server_exec()
 
             for (k=0; k<NUM_BUFFERS_TO_TEST; k++) {
 
-                // Translate to local descriptor
-                retVal = bigDataXlatetoLocalAndSync(regionId1, &msg->u.bigDataSharedDesc, &bigDataLocalDesc);
-                if (retVal) {
-                    status = -1;
-                    goto leave;
-                }
+                Cache_inv(&shmem->dspBuffPtr, sizeof(shmem->dspBuffPtr), Cache_Type_ALL, TRUE);
 
                 localDspBuffPtr = shmem->dspBuffPtr;
+
+                Cache_inv(&shmem->bufferFilled[localDspBuffPtr], sizeof(shmem->bufferFilled[localDspBuffPtr]), Cache_Type_ALL, TRUE);
 
                 if ( shmem->bufferFilled[localDspBuffPtr][0] == 0) {                     // make sure buffer is ready to be filled
                     // Log_print2(Diags_ENTRY | Diags_INFO, "localDspBuffPtr: %d  dspCtr: %d", localDspBuffPtr, dspCtr);
