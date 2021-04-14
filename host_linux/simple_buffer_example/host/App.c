@@ -404,10 +404,10 @@ Int App_exec(Void)
 
             msg->regionId                      = regionId;
 
-        }
 
-        /* send message */
-        MessageQ_put(Module.slaveQue, (MessageQ_Msg)msg);
+            /* send message */
+            MessageQ_put(Module.slaveQue, (MessageQ_Msg)msg);
+        }
 
         /* Send messages: End  =======================================> */
 
@@ -489,6 +489,8 @@ Int App_exec(Void)
 
     msg->cmd = App_CMD_SHUTDOWN;                            // Last message will tell the slave to shutdown
     msg->id  = msgID++;
+    /* send message */
+    MessageQ_put(Module.slaveQue, (MessageQ_Msg)msg);
 
 
     /* wait for shutdown message response */
@@ -551,7 +553,7 @@ Int App_exec(Void)
     printf("\n");
 
     printf ("# of wrong dsp counts: %d\n", NumOfWrongDspCtrs);
-    printf ("# of sweeps that a buffer wasn't ready from DSP: %d\nReceived buffer: \n", waitCtr);
+    printf ("# of sweeps that a buffer wasn't ready from DSP: %d\n", waitCtr);
 
 
 leave:
