@@ -54,11 +54,11 @@ extern "C" {
 #define App_CMD_BIGDATA                0x00000002
 #define App_CMD_SHUTDOWN               0x02000000
 
-#define HIGH_SPEED_NUMBER_OF_BUFFERS    16                                  // # of buffers avail in shared mem
-#define HIGH_SPEED_INTS_PER_BUFFER      (1024)                              // Size of each buffer in words
+#define HIGH_SPEED_NUMBER_OF_BUFFERS    (20)                             // # of buffers avail in shared mem
+#define HIGH_SPEED_INTS_PER_BUFFER      (1024)                             // Size of each buffer in words
 #define STREAMING_BUFFER_SIZE           (HIGH_SPEED_INTS_PER_BUFFER * 4)   // Size of each buffer in bytes
 
-#define NUM_BUFFERS_TO_TEST             (HIGH_SPEED_NUMBER_OF_BUFFERS*20)
+#define NUM_BUFFERS_TO_TEST             (HIGH_SPEED_NUMBER_OF_BUFFERS*50)
 
 typedef struct {
     UInt64              base;
