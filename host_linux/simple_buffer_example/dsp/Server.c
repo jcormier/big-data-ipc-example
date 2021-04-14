@@ -303,6 +303,8 @@ Int Server_exec()
 
             }
 
+            Log_print0(Diags_ENTRY | Diags_INFO, "msg->cmd=App_CMD_BIGDATA, DONE");
+
             break;
 
         case App_CMD_SHUTDOWN:        // <=============================================================
