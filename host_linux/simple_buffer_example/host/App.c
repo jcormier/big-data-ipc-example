@@ -456,9 +456,9 @@ Int App_exec(Void)
                 Cache_wb (&(shmem->armBuffPtr), sizeof(shmem->armBuffPtr), Cache_Type_ALL, TRUE);
                 // Cache_wb (bigDataLocalDesc.localPtr, bigDataLocalDesc.size, Cache_Type_ALL, TRUE);
 
+                clock_gettime(CLOCK_MONOTONIC, &times[j]);
                 j++;                                                // increment buffer pointer
                 expected_count++;
-                clock_gettime(CLOCK_MONOTONIC, &times[j]);
             } else {
                 waitCtr++;
             }
